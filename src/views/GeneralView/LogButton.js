@@ -18,12 +18,12 @@ const LoginButton = () => {
     const { user, setUser } = useAuthContext();
     const navigate = useNavigate();
     const [logName, setLogName] = useState(logStates.NOT_SIGNED_IN);
-    const [{ data: personalInfo }, fetch] = useLoadMe();
+    const [{ data: personalInfo, loading }, fetch] = useLoadMe();
     const { setIsOpen: setIsInfoModalOpen, isOpen: isInfoModalOpen } = usePersonalInfoModal();
     const breakpoints = useBreakpoint(true)
 
     useEffect(() => {
-        if (!isInfoModalOpen && user?.id) {
+        if (!isInfoModalOpen && !user?.id && !loading) {
             fetch()
         }
     }, [isInfoModalOpen, user]);

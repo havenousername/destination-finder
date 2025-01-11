@@ -15,9 +15,11 @@ const useLoadMe = () => {
     ...authenticationHeader(token)
   }, { manual: !!user?.id, autoCancel: false });
 
-  return [axiosHooks, () => fetch({
-    ...authenticationHeader(token)
-  })];
+  return [axiosHooks, () => {
+    return fetch({
+      ...authenticationHeader(token)
+    })
+  }];
 };
 
 export default useLoadMe;

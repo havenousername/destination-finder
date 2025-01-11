@@ -14,11 +14,11 @@ export const usePersonalInfoModal = create((set) => ({
 
 const PersonalInformation = () => {
   const {isOpen, setIsOpen} = usePersonalInfoModal();
-  const [{ data: personalInfo}, fetch] = useLoadMe();
+  const [{ data: personalInfo, loading}, fetch] = useLoadMe();
   const { user } = useAuthContext();
 
   useEffect(() => {
-    if (!personalInfo && user?.id) {
+    if (!personalInfo && user?.id && !loading) {
       fetch()
     }
   }, [personalInfo, user]);

@@ -18,7 +18,8 @@ const useLoadHistory = ({
     const params = new URLSearchParams();
     params.append('pagination[page]', String(obj?.page ?? 1));
     params.append('pagination[pageSize]', String(pageSize));
-    params.append('populate', 'images,region');
+    params.append('populate[0]', 'images');
+    params.append('populate[1]', 'region');
     params.append('filters[user][id][$eq]', userId);
     if (region) {
       params.append('filters[region][id][$eq]', region);

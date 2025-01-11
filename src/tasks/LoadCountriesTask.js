@@ -21,7 +21,6 @@ class LoadCountriesTask {
       });
   };
   processCountries = (countryScores, userData, setCountries, setResults) => {
-    console.log(countryScores);
     for (let i = 0; i < this.mapCountries.length; i++) {
       const mapCountry = this.mapCountries[i];
       const scoreCountry = countryScores.find(

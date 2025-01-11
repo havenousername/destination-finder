@@ -1,5 +1,5 @@
 import { Col } from "react-bootstrap";
-import { useFavouritesPaginationFrontend } from "../../hooks/useFavourites";
+import { useFavouritesPaginationFrontend } from "../../hooks/useLoadFavourites";
 import styles from "./RightPersonal.module.css";
 import useTravelRecommenderStore from "../../store/travelRecommenderStore";
 import useLoadMeWithGroups from "../../api/useLoadMeWithGroups";

@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import {StrictMode} from "react";
 import ReactDOM from "react-dom/client";
 import "./styles/index.css";
 import App from "./App.js";
@@ -6,19 +6,16 @@ import reportWebVitals from "./reportWebVitals";
 import AuthProvider from "./components/AuthProvider/AuthProvider.jsx";
 import { BrowserRouter as Router } from "react-router-dom";
 
-const domain = process.env.REACT_APP_AUTH0_DOMAIN;
-const clientID = process.env.REACT_APP_AUTH0_CLIENT_ID;
-
 const root = ReactDOM.createRoot(document.getElementById("root"));
 console.log(window.location.origin);
 root.render(
-  <React.StrictMode>
+  <StrictMode>
     <AuthProvider>
-    <Router>
-      <App />
+      <Router>
+        <App />
       </Router>
     </AuthProvider>
-  </React.StrictMode>
+  </StrictMode>
 );
 
 // If you want to start measuring performance in your app, pass a function
