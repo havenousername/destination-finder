@@ -1,6 +1,7 @@
 import mapData from "../data/regions.json";
 import axios from 'axios';
 import {getShortMonths} from "../helpers/months";
+import {strapiHeader} from "../api/headers";
 
 class LoadCountriesTask {
   allResults = [];
@@ -11,12 +12,16 @@ class LoadCountriesTask {
   #minVisitors = 0;
   #maxVisitors = 0;
   load = (setFileRetrieved) => {
-    axios.get(`${process.env.REACT_APP_BACKEND_URL}/regions?populate=*`)
+    axios.get(
+      `${process.env.REACT_APP_BACKEND_URL}/regions?populate=*`,
+      { headers: strapiHeader() }
+    )
       .then((response) => {
         setFileRetrieved(response.data.data?.map((region) => ({...region.attributes, id: region.id})));
       });
   };
   processCountries = (countryScores, userData, setCountries, setResults) => {
+    console.log(countryScores);
     for (let i = 0; i < this.mapCountries.length; i++) {
       const mapCountry = this.mapCountries[i];
       const scoreCountry = countryScores.find(

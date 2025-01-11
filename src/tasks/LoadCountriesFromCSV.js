@@ -11,6 +11,7 @@ class LoadCountriesFromCSV {
       download: true,
       header: true,
       complete: (result) => {
+        console.log(this.mapCountries);
         setFileRetrieved(result.data);
       },
     });
@@ -136,6 +137,7 @@ class LoadCountriesFromCSV {
         this.allResults.push(res);
       }
     }
+    debugger;
     this.mapCountries.sort(
       (a, b) =>
         b.properties.result.scores.totalScore -
@@ -268,4 +270,4 @@ class LoadCountriesFromCSV {
   };
 }
 
-export default LoadCountriesTask;
+export default LoadCountriesFromCSV;

@@ -1,6 +1,6 @@
 import {useToken} from "../components/AuthProvider/AuthProvider";
 import useAxios from "axios-hooks";
-import authenticationHeader from "./authenticationHeader";
+import authenticationHeader from "./headers";
 
 export const useUploadFile = () => {
   const token = useToken.getState().token;

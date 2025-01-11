@@ -3,6 +3,7 @@ import {useToken} from "../components/AuthProvider/AuthProvider";
 import {FavouritesApi} from "../api/favourites";
 import {useAuthContext} from "../context/AuthContext";
 import {useEffect, useState} from "react";
+import {strapiHeader} from "../api/headers";
 
 
 const favouritesState = create((set, get) => ({
@@ -21,7 +22,7 @@ const favouritesState = create((set, get) => ({
       const token = useToken.getState().token;
       const fetcher = new FavouritesApi(
         `${process.env.REACT_APP_BACKEND_URL}/favourites/${userId}`,
-        { Authorization: `bearer ${token}` },
+        { Authorization: `bearer ${token}`, ...strapiHeader() },
       )
       const data = await fetcher.getFavourites();
       set({ favourites: data, fetcher, initialized: true });
@@ -60,7 +61,7 @@ export const useFavourites = () => {
   const auth = useAuthContext();
 
   useEffect(() => {
-    if (!auth.user) {
+    if (!auth.user || !auth.user.id) {
       return;
     }
     if (!state.initialized) {

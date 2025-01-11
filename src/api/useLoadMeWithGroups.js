@@ -1,7 +1,7 @@
 // http://localhost:1337/api/users/me?populate[groups][populate][0]=regions
 import {useToken} from "../components/AuthProvider/AuthProvider";
 import useAxios from "axios-hooks";
-import authenticationHeader from "./authenticationHeader";
+import authenticationHeader from "./headers";
 import {useAuthContext} from "../context/AuthContext";
 import {useEffect, useState} from "react";
 
