@@ -47,7 +47,8 @@ const usePostHistory = () => {
     apiEvents.setApiEvent('visits/create')
 
     return execute({
-      data: formData,
+      method: 'POST',
+      data: formData
     })
   }
 

@@ -1,7 +1,6 @@
 
 import {useEffect, useState} from "react";
 import { AuthContext } from "../../context/AuthContext";
-import { message } from "antd";
 import { getToken } from "../../helpers";
 import {create} from "zustand";
 
@@ -23,10 +22,12 @@ const AuthProvider = ({ children }) => {
       });
       const data = await response.json();
 
+      if (data.error) {
+        throw new Error(data.error);
+      }
       setUserData(data);
     } catch (error) {
       console.error(error);
-      message.error("Error While Getting Logged In User Details");
     } finally {
       setIsLoading(false);
     }

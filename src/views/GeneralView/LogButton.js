@@ -18,13 +18,13 @@ const LoginButton = () => {
     const { user, setUser } = useAuthContext();
     const navigate = useNavigate();
     const [logName, setLogName] = useState(logStates.NOT_SIGNED_IN);
-    const [{ data: personalInfo, loading }, fetch] = useLoadMe();
+    const [{ data: personalInfo, error, loading }, fetch] = useLoadMe();
     const { setIsOpen: setIsInfoModalOpen, isOpen: isInfoModalOpen } = usePersonalInfoModal();
     const breakpoints = useBreakpoint(true)
 
     useEffect(() => {
         if (!isInfoModalOpen && !user?.id && !loading) {
-            fetch()
+            fetch();
         }
     }, [isInfoModalOpen, user]);
 
@@ -45,7 +45,7 @@ const LoginButton = () => {
 
 
     useEffect(() => {
-        if (user) {
+        if (user && !error) {
             setLogName(logStates.SIGNED_IN);
         } else {
             setLogName(logStates.NOT_SIGNED_IN);
