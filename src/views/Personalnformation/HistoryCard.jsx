@@ -75,7 +75,7 @@ const HistoryCard = ({
       <Card.Body>
         <Row>
           <Col className={'col-6'}>
-            <h5 style={{ fontSize: '0.8rem' }}>Arrival: {new Date(+entity.arrived * 1000).toLocaleDateString()}</h5>
+            <h5 style={{ fontSize: '0.8rem' }}>Arrival: {new Date(+entity.arrived).toLocaleDateString()}</h5>
           </Col>
           <Col className={'col-6'}>
             <h5 style={{ fontSize: '0.8rem' }} className='text-lg-end m-0'>Review: {entity.review}/5</h5>
@@ -83,7 +83,7 @@ const HistoryCard = ({
         </Row>
         <Row >
           <Col className={'col-6'}>
-            <h5 style={{ fontSize: '0.8rem' }}>Departure: {new Date(+entity.departed * 1000).toLocaleDateString()}</h5>
+            <h5 style={{ fontSize: '0.8rem' }}>Departure: {new Date(+entity.departed).toLocaleDateString()}</h5>
           </Col>
           <Col className={'col-6 d-flex justify-content-end'}>
             <GoToMapCountryButton

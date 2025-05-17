@@ -65,7 +65,7 @@ const LeftPersonal = ({ personalInfo, onLoadPersonal }) => {
                 try {
                   update({occupation})
                     .then(() => {
-                      message.success(`Occupation successfully updated to "${personalInfo.occupation}"`);
+                      message.success(`Occupation successfully updated"`);
                     })
                 } catch (e) {
                   message.error(e.message || "Failed to update users occupation");
