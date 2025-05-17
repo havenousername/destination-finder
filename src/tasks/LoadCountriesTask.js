@@ -1,6 +1,7 @@
 import mapData from "../data/regions.json";
 import axios from 'axios';
 import {getShortMonths} from "../helpers/months";
+import * as turf from '@turf/turf';
 
 class LoadCountriesTask {
   allResults = [];
@@ -19,6 +20,7 @@ class LoadCountriesTask {
   processCountries = (countryScores, userData, setCountries, setResults) => {
     for (let i = 0; i < this.mapCountries.length; i++) {
       const mapCountry = this.mapCountries[i];
+      mapCountry.geometry.centroid = turf.centroid(mapCountry.geometry)
       const scoreCountry = countryScores.find(
         (c) => c.u_name === mapCountry.properties.u_name
       );
@@ -26,6 +28,7 @@ class LoadCountriesTask {
         this.allPrices.push(scoreCountry.costPerWeek);
         this.scoreCountries.push(scoreCountry);
       }
+
     }
 
     this.scoreCountries.forEach((country) => {
@@ -76,6 +79,9 @@ class LoadCountriesTask {
         totalVisitorIndex: this.#allTotalVisitors[scoreCountry.id],
         scores: {
           totalScore: 0,
+          budgetScore: 0,
+          travelMonthScore: 0,
+          visitorScore: 0,
           presetTypeScore: 0,
           attr: {
             nature: {
@@ -189,7 +195,13 @@ class LoadCountriesTask {
         totalScore = Number((allScores / allWeights).toFixed(2));
       }
 
+      res.scores.budgetScore = budgetScore;
       res.scores.totalScore = totalScore;
+      res.scores.totalAttrScore = totalAttrScore;
+      res.scores.travelMonthScore = travelMonthScore;
+      res.scores.visitorScore = visitorScore;
+
+
       mapCountry.properties.result = res;
       this.allResults.push(res);
     }
@@ -199,9 +211,7 @@ class LoadCountriesTask {
         a.properties.result.scores.totalScore
     );
     setCountries(this.mapCountries);
-    this.allResults.sort((a, b) => b.scores.totalScore - a.scores.totalScore);
-    this.allResults = this.allResults.filter((a) => a.scores.totalScore > 0);
-    setResults(this.allResults.slice(0, 10));
+    this.setTypeResults(this.allResults, setResults, "SingleRecommendation")
   };
   calculateBudgetLevel = (costPerWeek) => {
     let index = this.allPrices.indexOf(costPerWeek);
@@ -285,6 +295,16 @@ class LoadCountriesTask {
       return 100 - ((countryBudgetLevel - userData.Budget) * 100) / 20;
     }
   };
+  setTypeResults = (results, setResults, type) => {
+    if(type === "SingleRecommendation"){
+        this.singleRecommendationAlgorithm(results, setResults)
+    }
+  }
+  singleRecommendationAlgorithm = (results, setResults) => {
+    results.sort((a, b) => b.scores.totalScore - a.scores.totalScore);
+    results = this.allResults.filter((a) => a.scores.totalScore > 0);
+    setResults(results.slice(0, 10));
+  }
 }
 
 export default LoadCountriesTask;

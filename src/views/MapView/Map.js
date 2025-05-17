@@ -1,10 +1,11 @@
 import React, {useRef, useState, useEffect, useCallback} from "react";
-import {MapContainer, GeoJSON } from "react-leaflet";
+import {MapContainer, GeoJSON , Marker, Popup} from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import "./styles/Map.css";
 import Legend from "./components/Legend";
 import useTravelRecommenderStore from "../../store/travelRecommenderStore";
 import LeafletTooltip from "../../components/LeafletPopup";
+import { ReactComponent as MarkerIcon } from '../../images/Marker.svg';
 import {create} from "zustand";
 
 const position = [51.0967884, 5.9671304];
@@ -182,12 +183,19 @@ const Map = ({ setActiveResult }) => {
           ref={setMap}
           doubleClickZoom={false}
         >
+          
+
           <GeoJSON
             ref={geoJsonLayer}
             style={countryStyle}
             data={countries}
             onEachFeature={onEachCountry}
           />
+          {/* {true && (
+  <Marker icon={MarkerIcon} position={[28.5946, 16.4861]}>
+    <Popup>This is the point you highlighted</Popup>
+  </Marker>
+)} */}
           <LeafletTooltip
             map={map}
             data={{
