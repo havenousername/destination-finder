@@ -1,7 +1,9 @@
 import mapData from "../data/regions.json";
 import axios from 'axios';
-import {getShortMonths} from "../helpers/months";
+import { getShortMonths } from "../helpers/months";
 import * as turf from '@turf/turf';
+import haversine from 'haversine';
+
 
 class LoadCountriesTask {
   allResults = [];
@@ -14,12 +16,14 @@ class LoadCountriesTask {
   load = (setFileRetrieved) => {
     axios.get(`${process.env.REACT_APP_BACKEND_URL}/regions?populate=*`)
       .then((response) => {
-        setFileRetrieved(response.data.data?.map((region) => ({...region.attributes, id: region.id})));
+        setFileRetrieved(response.data.data?.map((region) => ({ ...region.attributes, id: region.id })));
       });
   };
   processCountries = (countryScores, userData, setCountries, setResults) => {
     for (let i = 0; i < this.mapCountries.length; i++) {
       const mapCountry = this.mapCountries[i];
+
+
       mapCountry.geometry.centroid = turf.centroid(mapCountry.geometry)
       const scoreCountry = countryScores.find(
         (c) => c.u_name === mapCountry.properties.u_name
@@ -49,6 +53,7 @@ class LoadCountriesTask {
         (c) => c.properties.u_name === scoreCountry.u_name
       );
       const peakSeasons = this.preprocessSeason(scoreCountry.peakSeason);
+      // console.log(scoreCountry)
       const res = {
         id: scoreCountry.id,
         country: scoreCountry.ParentRegion.data.attributes.Region,
@@ -125,7 +130,7 @@ class LoadCountriesTask {
       };
 
       const budgetScore = this.calculateBudgetScore(res.budgetLevel, userData);
-      const visitorScore =  userData.isVisitorIndexImportant
+      const visitorScore = userData.isVisitorIndexImportant
         ? this.calculateTravelVisitorScore(res.totalVisitorIndex, userData)
         : 0;
 
@@ -211,7 +216,7 @@ class LoadCountriesTask {
         a.properties.result.scores.totalScore
     );
     setCountries(this.mapCountries);
-    this.setTypeResults(this.allResults, setResults, "SingleRecommendation")
+    this.setTypeResults(this.allResults, this.mapCountries, setResults, "SingleRecommendation")
   };
   calculateBudgetLevel = (costPerWeek) => {
     let index = this.allPrices.indexOf(costPerWeek);
@@ -295,16 +300,136 @@ class LoadCountriesTask {
       return 100 - ((countryBudgetLevel - userData.Budget) * 100) / 20;
     }
   };
-  setTypeResults = (results, setResults, type) => {
-    if(type === "SingleRecommendation"){
-        this.singleRecommendationAlgorithm(results, setResults)
+  setTypeResults = (results, mapCountries, setResults, type) => {
+
+    if (type === "SingleRecommendation") {
+      this.singleRecommendationAlgorithm(results, setResults)
     }
+    this.greedyRecommendationAlgorithm(mapCountries, results)
+
+    //  console.log(mapCountries)
+    // const start = { latitude: 28.59459476916798 , longitude: 16.48617513428431 }; //16.48617513428431, 28.59459476916798 Libya
+    // const end = { latitude: 34.140400485429936, longitude: 9.853497104541143 }; //9.853497104541143, 34.140400485429936 Tunisia
+    // const distance = haversine(start, end); // by default in kilometers
+    // console.log(distance);
   }
   singleRecommendationAlgorithm = (results, setResults) => {
     results.sort((a, b) => b.scores.totalScore - a.scores.totalScore);
     results = this.allResults.filter((a) => a.scores.totalScore > 0);
     setResults(results.slice(0, 10));
   }
+
+  greedyRecommendationAlgorithm = (mapCountries, results) => {
+    // mapCountries.sort((a,b) => a-b)
+
+    // const budgetLevel = 160
+    for (let i = 0; i < mapCountries.length; i++) {
+      //  console.log(mapCountries[i].properties.result.scores)
+      //  console.log(mapCountries[i].properties.result)
+      mapCountries[i].properties.result.scores.scoreToCostRatio = mapCountries[i].properties.result.scores.totalScore / mapCountries[i].properties.result.price
+    }
+    mapCountries.sort((a, b) =>
+      b.properties.result.scores.scoreToCostRatio - a.properties.result.scores.scoreToCostRatio
+    );
+    // const budgetLabel = country.budgetLevel < 40 ? "Low" : country.budgetLevel < 80 ? "Medium" : "High";
+
+    //  mapCountries.sort((a, b) => 
+    //   b.properties.result.scores.totalScore - a.properties.result.scores.totalScore
+    // );
+    //one month trip(900 per month) middle 1800 high 3600
+    //when u have low budget penality late is high for distance and the other way around when u have high budget
+          // let budget = 1800
+          // let selectedRegions = []
+          // const penaltyRate = 0.000025; //0.00006 - 0.000025
+          // budget = budget - mapCountries[0].properties.result.price
+          // selectedRegions.push(mapCountries[0])
+          // let candidates = mapCountries.filter(region => !selectedRegions.includes(region)).map(candidate => {
+          //   let score = candidate.properties.result.scores.totalScore;
+
+          //   for (const selected of selectedRegions) {
+          //     const dist = haversine(
+          //       { latitude: selected.geometry.centroid.geometry.coordinates[1] , longitude: selected.geometry.centroid.geometry.coordinates[0] }, // { lat, lon }
+          //       { latitude: candidate.geometry.centroid.geometry.coordinates[1] , longitude: candidate.geometry.centroid.geometry.coordinates[0] }
+          //     );
+
+          //     // if(candidate.properties.name === "Finland"){
+          //     //   console.log(score)
+          //     //   const penaltyFactor = Math.exp(-penaltyRate * dist);
+          //     //   score *= penaltyFactor;
+          //     //   console.log(dist)
+          //     //   console.log(penaltyFactor* score)
+          //     // }
+
+          //     const penaltyFactor = Math.exp(-penaltyRate * dist);
+          //     score *= penaltyFactor;        
+          //   }
+
+          //   candidate.properties.result.scores.penalizedScore = score;
+          //   return candidate;
+          // })
+          // .sort((a,b) => b.properties.result.scores.penalizedScore - a.properties.result.scores.penalizedScore);
+
+
+          
+          let budget = 3600;
+          let selectedRegions = [];
+          const penaltyRate = 0.00001;
+          
+          // Start by selecting the first region (assuming mapCountries is sorted by totalScore descending)
+          budget -= mapCountries[0].properties.result.price;
+          selectedRegions.push(mapCountries[0]);
+          
+          while (true) {
+            // Filter candidates: not selected and price fits the remaining budget
+            let candidates = mapCountries
+              .filter(region => 
+                !selectedRegions.includes(region) && 
+                region.properties.result.price <= budget
+              )
+              .map(candidate => {
+                // Calculate penalized score based on distance to all selected regions
+                let score = candidate.properties.result.scores.totalScore;
+          
+                for (const selected of selectedRegions) {
+                  const dist = haversine(
+                    { latitude: selected.geometry.centroid.geometry.coordinates[1], longitude: selected.geometry.centroid.geometry.coordinates[0] },
+                    { latitude: candidate.geometry.centroid.geometry.coordinates[1], longitude: candidate.geometry.centroid.geometry.coordinates[0] }
+                  );
+          
+                  const penaltyFactor = Math.exp(-penaltyRate * dist);
+                  score *= penaltyFactor;
+                }
+          
+                candidate.properties.result.scores.penalizedScore = score;
+                return candidate;
+              })
+              // Sort candidates by penalized score descending
+              .sort((a, b) => b.properties.result.scores.penalizedScore - a.properties.result.scores.penalizedScore);
+          
+            if (candidates.length === 0) {
+              // No more candidates fit the budget — stop
+              break;
+            }
+          
+            // Pick the best candidate
+            const bestCandidate = candidates[0];
+          
+            // Deduct price and add to selectedRegions
+            budget -= bestCandidate.properties.result.price;
+            selectedRegions.push(bestCandidate);
+          }
+          
+    console.log(selectedRegions)
+    // const distance = haversine(start, end); // by default in kilometers
+
+
+
+    // console.log(selectedRegion)
+    // console.log(mapCountries)
+    // console.log(candidates)
+
+  }
+
 }
 
 export default LoadCountriesTask;

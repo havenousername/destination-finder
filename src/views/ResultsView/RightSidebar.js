@@ -12,6 +12,7 @@ export const RightSidebar = ({ activeResult}) => {
   const [activeIndex, setActiveIndex] = useState(-1);
   const accordElem = useRef(null);
 
+
   useEffect(() => {
     if (results.length > 0) {
       if (activeResult === activeIndex) {

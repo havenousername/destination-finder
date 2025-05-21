@@ -16,6 +16,7 @@ const App = () => {
     const loadCountriesTask = new LoadCountriesTask();
     loadCountriesTask.load(setFileRetrieved);
   };
+  
   const calculateScores = () => {
     if (fileRetrieved?.length > 0) {
       const loadCountriesTask = new LoadCountriesTask();
@@ -28,7 +29,7 @@ const App = () => {
       
     }
   };
-  console.log(countries)
+  // console.log(countries)
   // console.log(fileRetrieved)
   useEffect(load, []);
   useEffect(calculateScores, [userData, fileRetrieved, setCountries, setResults]);
