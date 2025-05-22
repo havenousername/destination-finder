@@ -11,7 +11,7 @@ import * as turf from '@turf/turf';
 
 const App = () => {
   const [fileRetrieved, setFileRetrieved] = useState([]);
-  const { countries, setCountries, setResults, userData, results} = useTravelRecommenderStore();
+  const { countries, setCountries, setResults, userData, recommendationType} = useTravelRecommenderStore();
   const load = () => {
     const loadCountriesTask = new LoadCountriesTask();
     loadCountriesTask.load(setFileRetrieved);
@@ -24,7 +24,8 @@ const App = () => {
         fileRetrieved,
         userData,
         setCountries,
-        setResults
+        setResults,
+        recommendationType
       );
       
     }
@@ -32,7 +33,7 @@ const App = () => {
   // console.log(countries)
   // console.log(fileRetrieved)
   useEffect(load, []);
-  useEffect(calculateScores, [userData, fileRetrieved, setCountries, setResults]);
+  useEffect(calculateScores, [userData, fileRetrieved, setCountries, setResults, recommendationType]);
   const auth = useAuthContext();
   const { fetch } = useFavourites();
 

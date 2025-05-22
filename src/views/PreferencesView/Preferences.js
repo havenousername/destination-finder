@@ -10,9 +10,10 @@ import styles from "./Preferences.module.css";
 import { ToggleButton } from "react-bootstrap";
 
 const Preferences = () => {
-  const { userData, setUserData } = useTravelRecommenderStore();
+  const { userData, setUserData,  recommendationType, setRecommendationType } = useTravelRecommenderStore();
+
   const [key, setKey] = useState('advanced');
-  const [isSingleTrip, setIsSingleTrip] = useState(true);
+  const isSingleTrip = recommendationType === 'single';
   return (
     <div style={{ height: "100%", overflowY: "auto", overflowX: "hidden", padding: "1rem" }}>
       <div style={{ textAlign: "left", paddingTop: "10px" }}>
@@ -23,7 +24,7 @@ const Preferences = () => {
       <div style={{marginTop:"10px", display: "flex", justifyContent: "space-evenly"}}>
         <ToggleButton
           checked={isSingleTrip}
-          onClick={() => {setIsSingleTrip(true)}}
+          onClick={() => {setRecommendationType("single")}}
           type="checkbox"
           className={styles.toggle}
           variant="outline-primary"
@@ -33,7 +34,7 @@ const Preferences = () => {
         </ToggleButton>
         <ToggleButton
           checked={!isSingleTrip}
-          onClick={() => {setIsSingleTrip(false)}}
+          onClick={() => {setRecommendationType("composite")}}
           type="checkbox"
           className={styles.toggle}
           variant="outline-primary"
@@ -41,6 +42,27 @@ const Preferences = () => {
         > <span>Composite Trip</span>
         </ToggleButton>
       </div>
+      
+      { !isSingleTrip &&<div className='mb-4'>
+        <RangedPreference
+          userDataKey='Distance'
+          title='Distance between regions'
+          checkKey='isDistanceImportant'
+          stepsText={['Low', 'Medium','High']}
+          checkLabel='Dont consider distance between countries'
+          checkTooltipText='If you select the checkbox the distance between countries in a composite trip would not be in consideration
+          ,meaning that you can get very far away countries from each others'
+          step={10}
+        />
+      </div>}
+      { !isSingleTrip &&<div className='mb-4'>
+        <RangedPreference
+          userDataKey='Weeks'
+          title='Total Of Weeks'
+          stepsText={['0', '12','24']}
+          step={10}
+        />
+      </div>}
       <div className='mb-4'>
         <RangedPreference
           userDataKey='Budget'

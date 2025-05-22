@@ -19,7 +19,7 @@ class LoadCountriesTask {
         setFileRetrieved(response.data.data?.map((region) => ({ ...region.attributes, id: region.id })));
       });
   };
-  processCountries = (countryScores, userData, setCountries, setResults) => {
+  processCountries = (countryScores, userData, setCountries, setResults,  recommendationType) => {
     for (let i = 0; i < this.mapCountries.length; i++) {
       const mapCountry = this.mapCountries[i];
 
@@ -216,7 +216,7 @@ class LoadCountriesTask {
         a.properties.result.scores.totalScore
     );
     setCountries(this.mapCountries);
-    this.setTypeResults(this.allResults, this.mapCountries, setResults, "SingleRecommendation")
+    this.setTypeResults(this.allResults, this.mapCountries, setResults, recommendationType)
   };
   calculateBudgetLevel = (costPerWeek) => {
     let index = this.allPrices.indexOf(costPerWeek);
@@ -301,12 +301,12 @@ class LoadCountriesTask {
     }
   };
   setTypeResults = (results, mapCountries, setResults, type) => {
-
-    if (type === "SingleRecommendation") {
+    if (type === "single") {
       this.singleRecommendationAlgorithm(results, setResults)
     }
-    this.greedyRecommendationAlgorithm(mapCountries, results)
-
+    else if(type === "composite"){
+      this.greedyRecommendationAlgorithm(mapCountries, setResults)
+    }
     //  console.log(mapCountries)
     // const start = { latitude: 28.59459476916798 , longitude: 16.48617513428431 }; //16.48617513428431, 28.59459476916798 Libya
     // const end = { latitude: 34.140400485429936, longitude: 9.853497104541143 }; //9.853497104541143, 34.140400485429936 Tunisia
@@ -319,23 +319,21 @@ class LoadCountriesTask {
     setResults(results.slice(0, 10));
   }
 
-  greedyRecommendationAlgorithm = (mapCountries, results) => {
+  greedyRecommendationAlgorithm = (mapCountries, setResults) => {
     // mapCountries.sort((a,b) => a-b)
 
     // const budgetLevel = 160
-    for (let i = 0; i < mapCountries.length; i++) {
-      //  console.log(mapCountries[i].properties.result.scores)
-      //  console.log(mapCountries[i].properties.result)
-      mapCountries[i].properties.result.scores.scoreToCostRatio = mapCountries[i].properties.result.scores.totalScore / mapCountries[i].properties.result.price
-    }
-    mapCountries.sort((a, b) =>
-      b.properties.result.scores.scoreToCostRatio - a.properties.result.scores.scoreToCostRatio
-    );
+    // for (let i = 0; i < mapCountries.length; i++) {
+    //   mapCountries[i].properties.result.scores.scoreToCostRatio = mapCountries[i].properties.result.scores.totalScore / mapCountries[i].properties.result.price
+    // }
+    // mapCountries.sort((a, b) =>
+    //   b.properties.result.scores.scoreToCostRatio - a.properties.result.scores.scoreToCostRatio
+    // );
     // const budgetLabel = country.budgetLevel < 40 ? "Low" : country.budgetLevel < 80 ? "Medium" : "High";
 
-    //  mapCountries.sort((a, b) => 
-    //   b.properties.result.scores.totalScore - a.properties.result.scores.totalScore
-    // );
+     mapCountries.sort((a, b) => 
+      b.properties.result.scores.totalScore - a.properties.result.scores.totalScore
+    );
     //one month trip(900 per month) middle 1800 high 3600
     //when u have low budget penality late is high for distance and the other way around when u have high budget
           // let budget = 1800
@@ -418,8 +416,11 @@ class LoadCountriesTask {
             budget -= bestCandidate.properties.result.price;
             selectedRegions.push(bestCandidate);
           }
-          
-    console.log(selectedRegions)
+
+    
+    // console.log(selectedRegions)
+    setResults(selectedRegions.map(region => region.properties.result));
+    // console.log(results)
     // const distance = haversine(start, end); // by default in kilometers
 
 
