@@ -6,7 +6,7 @@ const useTravelRecommenderStore = create((set) => ({
         isPriceImportant: false,
         Budget: 50,
         Distance:50,
-        isDistanceImportant: true,
+        isDistanceNotImportant: false,
         Weeks:50,
         Months: Array(12).fill(0),
         PresetType: [],

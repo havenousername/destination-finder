@@ -4,7 +4,7 @@ import ResultInfo from "./components/ResultInfo";
 import React from "react";
 
 
-const ResultItem = ({ accordElem, index, activeIndex, setActiveIndex, item }) => {
+const ResultItem = ({ accordElem, index, activeIndex, isComposite, setActiveIndex, item }) => {
   const onClick = () => {
     if (index === activeIndex) {
       setActiveIndex(-1);
@@ -24,7 +24,7 @@ const ResultItem = ({ accordElem, index, activeIndex, setActiveIndex, item }) =>
       >
         <div className={'d-flex w-100 gap-2'}>
           <FavouriteTag country={item.uname} />
-          <span>{index + 1}. {item.region}</span>
+           {!isComposite && <span>{index + 1}.</span>}<span> {item.region}</span>
         </div>
       </Accordion.Header>
       <Accordion.Body>

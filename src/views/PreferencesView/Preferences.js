@@ -47,7 +47,7 @@ const Preferences = () => {
         <RangedPreference
           userDataKey='Distance'
           title='Distance between regions'
-          checkKey='isDistanceImportant'
+          checkKey='isDistanceNotImportant'
           stepsText={['Low', 'Medium','High']}
           checkLabel='Dont consider distance between countries'
           checkTooltipText='If you select the checkbox the distance between countries in a composite trip would not be in consideration
@@ -59,8 +59,8 @@ const Preferences = () => {
         <RangedPreference
           userDataKey='Weeks'
           title='Total Of Weeks'
-          stepsText={['0', '12','24']}
-          step={10}
+          stepsText={['1', '11','21']}
+          step={5}
         />
       </div>}
       <div className='mb-4'>

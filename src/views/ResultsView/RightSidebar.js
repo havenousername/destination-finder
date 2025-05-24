@@ -9,6 +9,7 @@ import LogButton from "../GeneralView/LogButton";
 export const RightSidebar = ({ activeResult}) => {
   const {user} = useAuthContext();
   const results = useTravelRecommenderStore((state) => state.results);
+  const {recommendationType} = useTravelRecommenderStore();
   const [activeIndex, setActiveIndex] = useState(-1);
   const accordElem = useRef(null);
 
@@ -32,9 +33,11 @@ export const RightSidebar = ({ activeResult}) => {
   return (
     <div className='py-2 pe-2 h-100 overflow-y-scroll overflow-x-hidden'>
       <LogButton/>
+
       <p className={'m-0'} style={{ textAlign: "left" }}>
-        Best destinations for {capitalize(user?.username ?? "you")}
+        Best {recommendationType === 'single'? "destination": "composite trip"} for {capitalize(user?.username ?? "you")}
       </p>
+
       {results.length > 0 ? (
         <div ref={accordElem}>
           <Accordion activeKey={activeIndex}>
@@ -42,6 +45,7 @@ export const RightSidebar = ({ activeResult}) => {
               <ResultItem
                 key={index}
                 item={item}
+                isComposite={recommendationType === 'composite'}
                 accordElem={accordElem}
                 index={index}
                 activeIndex={activeIndex}

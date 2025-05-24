@@ -200,6 +200,7 @@ class LoadCountriesTask {
         totalScore = Number((allScores / allWeights).toFixed(2));
       }
 
+
       res.scores.budgetScore = budgetScore;
       res.scores.totalScore = totalScore;
       res.scores.totalAttrScore = totalAttrScore;
@@ -216,7 +217,7 @@ class LoadCountriesTask {
         a.properties.result.scores.totalScore
     );
     setCountries(this.mapCountries);
-    this.setTypeResults(this.allResults, this.mapCountries, setResults, recommendationType)
+    this.setTypeResults(this.allResults, userData,  this.mapCountries, setResults, recommendationType)
   };
   calculateBudgetLevel = (costPerWeek) => {
     let index = this.allPrices.indexOf(costPerWeek);
@@ -300,12 +301,12 @@ class LoadCountriesTask {
       return 100 - ((countryBudgetLevel - userData.Budget) * 100) / 20;
     }
   };
-  setTypeResults = (results, mapCountries, setResults, type) => {
+  setTypeResults = (results, userData, mapCountries, setResults, type) => {
     if (type === "single") {
       this.singleRecommendationAlgorithm(results, setResults)
     }
     else if(type === "composite"){
-      this.greedyRecommendationAlgorithm(mapCountries, setResults)
+      this.greedyRecommendationAlgorithm(mapCountries, userData, setResults)
     }
     //  console.log(mapCountries)
     // const start = { latitude: 28.59459476916798 , longitude: 16.48617513428431 }; //16.48617513428431, 28.59459476916798 Libya
@@ -319,7 +320,7 @@ class LoadCountriesTask {
     setResults(results.slice(0, 10));
   }
 
-  greedyRecommendationAlgorithm = (mapCountries, setResults) => {
+  greedyRecommendationAlgorithm = (mapCountries, userData, setResults) => {
     // mapCountries.sort((a,b) => a-b)
 
     // const budgetLevel = 160
@@ -334,7 +335,8 @@ class LoadCountriesTask {
      mapCountries.sort((a, b) => 
       b.properties.result.scores.totalScore - a.properties.result.scores.totalScore
     );
-    //one month trip(900 per month) middle 1800 high 3600
+    //one month trip(900 per week) middle 1800 high 3600
+    // 225 low, 450 middle , 900 high
     //when u have low budget penality late is high for distance and the other way around when u have high budget
           // let budget = 1800
           // let selectedRegions = []
@@ -367,12 +369,28 @@ class LoadCountriesTask {
           // })
           // .sort((a,b) => b.properties.result.scores.penalizedScore - a.properties.result.scores.penalizedScore);
 
+          let budget;
+          let numberOfWeeks =  Math.round(1 + userData.Weeks / 5);
+          if (userData.Budget === 0) {
+            budget = 225 * numberOfWeeks; // low budget per week is 225
+          } else if (userData.Budget === 50) {
+            budget = 450 * numberOfWeeks; // mid budget per week is 450
+          } else if (userData.Budget === 100) {
+            budget = 900 * numberOfWeeks;  // mid budget per week is 900
+          } 
 
-          
-          let budget = 3600;
+          const minPenaltyRate = 0.00001;   // Light penalty when distance importance is low
+          const maxPenaltyRate = 0.001;     // Much stronger penalty when distance importance is high
+         // const minPenaltyRate = 0.00001;
+         // const maxPenaltyRate = 0.0015; // or 0.002 if you want more suppression
+
+          let penaltyRate = minPenaltyRate + (maxPenaltyRate - minPenaltyRate) * (userData.Distance / 100); //linear interpolation
+          if (userData.isDistanceNotImportant) {
+            penaltyRate = 0;
+          }
+                    // console.log(penaltyRate)
           let selectedRegions = [];
-          const penaltyRate = 0.00001;
-          
+
           // Start by selecting the first region (assuming mapCountries is sorted by totalScore descending)
           budget -= mapCountries[0].properties.result.price;
           selectedRegions.push(mapCountries[0]);
