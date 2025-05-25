@@ -3,6 +3,7 @@ import axios from 'axios';
 import { getShortMonths } from "../helpers/months";
 import * as turf from '@turf/turf';
 import haversine from 'haversine';
+// import solver from 'javascript-lp-solver';
 
 
 class LoadCountriesTask {
@@ -19,7 +20,7 @@ class LoadCountriesTask {
         setFileRetrieved(response.data.data?.map((region) => ({ ...region.attributes, id: region.id })));
       });
   };
-  processCountries = (countryScores, userData, setCountries, setResults,  recommendationType) => {
+  processCountries = (countryScores, userData, setCountries, setResults, recommendationType) => {
     for (let i = 0; i < this.mapCountries.length; i++) {
       const mapCountry = this.mapCountries[i];
 
@@ -217,7 +218,7 @@ class LoadCountriesTask {
         a.properties.result.scores.totalScore
     );
     setCountries(this.mapCountries);
-    this.setTypeResults(this.allResults, userData,  this.mapCountries, setResults, recommendationType)
+    this.setTypeResults(this.allResults, userData, this.mapCountries, setResults, recommendationType)
   };
   calculateBudgetLevel = (costPerWeek) => {
     let index = this.allPrices.indexOf(costPerWeek);
@@ -292,6 +293,7 @@ class LoadCountriesTask {
     }
   }
 
+
   calculateBudgetScore = (countryBudgetLevel, userData) => {
     if (userData.Budget >= countryBudgetLevel) {
       return 100;
@@ -305,7 +307,7 @@ class LoadCountriesTask {
     if (type === "single") {
       this.singleRecommendationAlgorithm(results, setResults)
     }
-    else if(type === "composite"){
+    else if (type === "composite") {
       this.greedyRecommendationAlgorithm(mapCountries, userData, setResults)
     }
     //  console.log(mapCountries)
@@ -332,112 +334,138 @@ class LoadCountriesTask {
     // );
     // const budgetLabel = country.budgetLevel < 40 ? "Low" : country.budgetLevel < 80 ? "Medium" : "High";
 
-     mapCountries.sort((a, b) => 
+    mapCountries.sort((a, b) =>
       b.properties.result.scores.totalScore - a.properties.result.scores.totalScore
     );
     //one month trip(900 per week) middle 1800 high 3600
     // 225 low, 450 middle , 900 high
     //when u have low budget penality late is high for distance and the other way around when u have high budget
-          // let budget = 1800
-          // let selectedRegions = []
-          // const penaltyRate = 0.000025; //0.00006 - 0.000025
-          // budget = budget - mapCountries[0].properties.result.price
-          // selectedRegions.push(mapCountries[0])
-          // let candidates = mapCountries.filter(region => !selectedRegions.includes(region)).map(candidate => {
-          //   let score = candidate.properties.result.scores.totalScore;
+    // let budget = 1800
+    // let selectedRegions = []
+    // const penaltyRate = 0.000025; //0.00006 - 0.000025
+    // budget = budget - mapCountries[0].properties.result.price
+    // selectedRegions.push(mapCountries[0])
+    // let candidates = mapCountries.filter(region => !selectedRegions.includes(region)).map(candidate => {
+    //   let score = candidate.properties.result.scores.totalScore;
 
-          //   for (const selected of selectedRegions) {
-          //     const dist = haversine(
-          //       { latitude: selected.geometry.centroid.geometry.coordinates[1] , longitude: selected.geometry.centroid.geometry.coordinates[0] }, // { lat, lon }
-          //       { latitude: candidate.geometry.centroid.geometry.coordinates[1] , longitude: candidate.geometry.centroid.geometry.coordinates[0] }
-          //     );
+    //   for (const selected of selectedRegions) {
+    //     const dist = haversine(
+    //       { latitude: selected.geometry.centroid.geometry.coordinates[1] , longitude: selected.geometry.centroid.geometry.coordinates[0] }, // { lat, lon }
+    //       { latitude: candidate.geometry.centroid.geometry.coordinates[1] , longitude: candidate.geometry.centroid.geometry.coordinates[0] }
+    //     );
 
-          //     // if(candidate.properties.name === "Finland"){
-          //     //   console.log(score)
-          //     //   const penaltyFactor = Math.exp(-penaltyRate * dist);
-          //     //   score *= penaltyFactor;
-          //     //   console.log(dist)
-          //     //   console.log(penaltyFactor* score)
-          //     // }
+    //     // if(candidate.properties.name === "Finland"){
+    //     //   console.log(score)
+    //     //   const penaltyFactor = Math.exp(-penaltyRate * dist);
+    //     //   score *= penaltyFactor;
+    //     //   console.log(dist)
+    //     //   console.log(penaltyFactor* score)
+    //     // }
 
-          //     const penaltyFactor = Math.exp(-penaltyRate * dist);
-          //     score *= penaltyFactor;        
-          //   }
+    //     const penaltyFactor = Math.exp(-penaltyRate * dist);
+    //     score *= penaltyFactor;        
+    //   }
 
-          //   candidate.properties.result.scores.penalizedScore = score;
-          //   return candidate;
-          // })
-          // .sort((a,b) => b.properties.result.scores.penalizedScore - a.properties.result.scores.penalizedScore);
+    //   candidate.properties.result.scores.penalizedScore = score;
+    //   return candidate;
+    // })
+    // .sort((a,b) => b.properties.result.scores.penalizedScore - a.properties.result.scores.penalizedScore);
 
-          let budget;
-          let numberOfWeeks =  Math.round(1 + userData.Weeks / 5);
-          if (userData.Budget === 0) {
-            budget = 225 * numberOfWeeks; // low budget per week is 225
-          } else if (userData.Budget === 50) {
-            budget = 450 * numberOfWeeks; // mid budget per week is 450
-          } else if (userData.Budget === 100) {
-            budget = 900 * numberOfWeeks;  // mid budget per week is 900
-          } 
+    let budget;
+    let numberOfWeeks = Math.round(1 + userData.Weeks / 5);
+    if (userData.Budget === 0) {
+      budget = 225 * numberOfWeeks; // low budget per week is 225
+    } else if (userData.Budget === 50) {
+      budget = 450 * numberOfWeeks; // mid budget per week is 450
+    } else if (userData.Budget === 100) {
+      budget = 900 * numberOfWeeks;  // mid budget per week is 900
+    }
 
-          const minPenaltyRate = 0.00001;   // Light penalty when distance importance is low
-          const maxPenaltyRate = 0.001;     // Much stronger penalty when distance importance is high
-         // const minPenaltyRate = 0.00001;
-         // const maxPenaltyRate = 0.0015; // or 0.002 if you want more suppression
+    const minPenaltyRate = 0.00001;   // Light penalty when distance importance is low
+    const maxPenaltyRate = 0.001;     // Much stronger penalty when distance importance is high
+    // const minPenaltyRate = 0.00001;
+    // const maxPenaltyRate = 0.0015; // or 0.002 if you want more suppression
 
-          let penaltyRate = minPenaltyRate + (maxPenaltyRate - minPenaltyRate) * (userData.Distance / 100); //linear interpolation
-          if (userData.isDistanceNotImportant) {
-            penaltyRate = 0;
-          }
-                    // console.log(penaltyRate)
-          let selectedRegions = [];
+    let penaltyRate = minPenaltyRate + (maxPenaltyRate - minPenaltyRate) * (userData.Distance / 100); //linear interpolation
 
-          // Start by selecting the first region (assuming mapCountries is sorted by totalScore descending)
-          budget -= mapCountries[0].properties.result.price;
-          selectedRegions.push(mapCountries[0]);
-          
-          while (true) {
-            // Filter candidates: not selected and price fits the remaining budget
-            let candidates = mapCountries
-              .filter(region => 
-                !selectedRegions.includes(region) && 
-                region.properties.result.price <= budget
-              )
-              .map(candidate => {
-                // Calculate penalized score based on distance to all selected regions
-                let score = candidate.properties.result.scores.totalScore;
-          
-                for (const selected of selectedRegions) {
-                  const dist = haversine(
-                    { latitude: selected.geometry.centroid.geometry.coordinates[1], longitude: selected.geometry.centroid.geometry.coordinates[0] },
-                    { latitude: candidate.geometry.centroid.geometry.coordinates[1], longitude: candidate.geometry.centroid.geometry.coordinates[0] }
-                  );
-          
-                  const penaltyFactor = Math.exp(-penaltyRate * dist);
-                  score *= penaltyFactor;
-                }
-          
-                candidate.properties.result.scores.penalizedScore = score;
-                return candidate;
-              })
-              // Sort candidates by penalized score descending
-              .sort((a, b) => b.properties.result.scores.penalizedScore - a.properties.result.scores.penalizedScore);
-          
-            if (candidates.length === 0) {
-              // No more candidates fit the budget — stop
-              break;
-            }
-          
-            // Pick the best candidate
-            const bestCandidate = candidates[0];
-          
-            // Deduct price and add to selectedRegions
-            budget -= bestCandidate.properties.result.price;
-            selectedRegions.push(bestCandidate);
+    if (userData.isDistanceNotImportant) {
+      penaltyRate = 0;
+    }
+    // console.log(penaltyRate)
+    let selectedRegions = [];
+
+    // Start by selecting the first region (assuming mapCountries is sorted by totalScore descending)
+    budget -= mapCountries[0].properties.result.price;
+    selectedRegions.push(mapCountries[0]);
+
+    while (true) {
+      // Filter candidates: not selected and price fits the remaining budget
+      let candidates = mapCountries
+        .filter(region =>
+          !selectedRegions.includes(region) &&
+          region.properties.result.price <= budget
+        )
+        .map(candidate => {
+          // Calculate penalized score based on distance to all selected regions
+          let score = candidate.properties.result.scores.totalScore;
+
+          for (const selected of selectedRegions) {
+            const dist = haversine(
+              { latitude: selected.geometry.centroid.geometry.coordinates[1], longitude: selected.geometry.centroid.geometry.coordinates[0] },
+              { latitude: candidate.geometry.centroid.geometry.coordinates[1], longitude: candidate.geometry.centroid.geometry.coordinates[0] }
+            );
+
+            const penaltyFactor = Math.exp(-penaltyRate * dist);
+            score *= penaltyFactor;
           }
 
-    
+          candidate.properties.result.scores.penalizedScore = score;
+          return candidate;
+        })
+        // Sort candidates by penalized score descending
+        .sort((a, b) => b.properties.result.scores.penalizedScore - a.properties.result.scores.penalizedScore);
+
+      if (candidates.length === 0) {
+        // No more candidates fit the budget — stop
+        break;
+      }
+
+      // Pick the best candidate
+      const bestCandidate = candidates[0];
+
+      // Deduct price and add to selectedRegions
+      budget -= bestCandidate.properties.result.price;
+      selectedRegions.push(bestCandidate);
+    }
+
+
+
+
+    // this.allocateWeeksILP(selectedRegions, numberOfWeeks, 3).then(allocatedRegions => {
+    //   console.log(allocatedRegions);
+    //   // setResults(
+    //   //   allocatedRegions.map(({ region, weeks }) => ({
+    //   //     ...region.properties.result,
+    //   //     allocatedWeeks: weeks,
+    //   //   }))
+    //   // );
+    // });
+
     // console.log(selectedRegions)
-    setResults(selectedRegions.map(region => region.properties.result));
+
+    const allocatedRegions = this.allocateWeeksILP(selectedRegions, numberOfWeeks, numberOfWeeks/2, userData.weekAllocationDistribution/10);
+     
+    setResults(     
+      allocatedRegions.map(({ region, weeks }) => ({
+        ...region.properties.result,
+        allocatedWeeks: weeks
+      })))
+
+      // console.log( allocatedRegions.map(({ region, weeks }) => ({
+      //   ...region.properties.result,
+      //   allocatedWeeks: weeks
+      // })))
+    // setResults(selectedRegions.map(region => region.properties.result));
     // console.log(results)
     // const distance = haversine(start, end); // by default in kilometers
 
@@ -448,6 +476,65 @@ class LoadCountriesTask {
     // console.log(candidates)
 
   }
+
+  allocateWeeksILP = (regions, totalWeeks, maxWeeksPerRegion, lambdaPenalty) => {
+    const model = {
+      optimize: 'totalScore',
+      opType: 'max',
+      constraints: {
+        weeks: { max: totalWeeks }
+      },
+      variables: {},
+      ints: {}
+    };
+  
+    const mu = totalWeeks / regions.length;
+  
+    // Add variables: each variable means "region i gets w weeks"
+    regions.forEach((region, i) => {
+      for (let w = 1; w <= maxWeeksPerRegion; w++) {
+        const varName = `r${i}_w${w}`;
+        // Calculate penalty term for deviation from mu
+        const penalty = lambdaPenalty * Math.pow(w - mu, 2);
+        // Adjusted totalScore subtracts penalty
+        const adjustedScore = region.properties.result.scores.totalScore * w - penalty;
+  
+        model.variables[varName] = {
+          totalScore: adjustedScore,
+          weeks: w
+        };
+        model.ints[varName] = 1;
+      }
+    });
+  
+    // Constraint: Each region can have only one week allocation (binary sum = 1)
+    regions.forEach((_, i) => {
+      const constraintName = `only_one_week_r${i}`;
+      model.constraints[constraintName] = { max: 1 };
+      for (let w = 1; w <= maxWeeksPerRegion; w++) {
+        const varName = `r${i}_w${w}`;
+        model.variables[varName][constraintName] = 1;
+      }
+    });
+  
+    // Solve ILP
+    const results = window.solver.Solve(model);
+  
+    // Extract allocation from solution
+    const allocation = [];
+    regions.forEach((region, i) => {
+      for (let w = 1; w <= maxWeeksPerRegion; w++) {
+        const varName = `r${i}_w${w}`;
+        if (results[varName] === 1) {
+          allocation.push({ region, weeks: w });
+        }
+      }
+    });
+  
+    return allocation;
+  }
+  
+
 
 }
 

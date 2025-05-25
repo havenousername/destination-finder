@@ -63,6 +63,13 @@ const Preferences = () => {
           step={5}
         />
       </div>}
+      { !isSingleTrip && <div className='mb-4'>
+        <RangedPreference
+          userDataKey='weekAllocationDistribution'
+          title='Week allocation distribution'
+          step={10}
+        />
+      </div>}
       <div className='mb-4'>
         <RangedPreference
           userDataKey='Budget'

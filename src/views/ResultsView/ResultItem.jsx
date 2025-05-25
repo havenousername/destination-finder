@@ -5,6 +5,7 @@ import React from "react";
 
 
 const ResultItem = ({ accordElem, index, activeIndex, isComposite, setActiveIndex, item }) => {
+  console.log(item)
   const onClick = () => {
     if (index === activeIndex) {
       setActiveIndex(-1);
@@ -18,13 +19,32 @@ const ResultItem = ({ accordElem, index, activeIndex, isComposite, setActiveInde
     }
   }
   return (
-    <Accordion.Item  eventKey={index}>
+    <Accordion.Item eventKey={index}>
       <Accordion.Header
         onClick={onClick}
       >
         <div className={'d-flex w-100 gap-2'}>
           <FavouriteTag country={item.uname} />
-           {!isComposite && <span>{index + 1}.</span>}<span> {item.region}</span>
+          {!isComposite && <span>{index + 1}.</span>}
+
+          <span
+            title={item.region} // tooltip on hover
+            style={{
+              maxWidth: '150px', 
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              display: 'inline-block',
+              verticalAlign: 'middle',
+              width: "100%"
+            }}
+          >
+            {item.region}
+          </span>
+
+          {isComposite && (
+            <span style={{ textAlign: 'center', flexGrow: 1 }}>{item.allocatedWeeks} weeks</span>
+          )}
         </div>
       </Accordion.Header>
       <Accordion.Body>
