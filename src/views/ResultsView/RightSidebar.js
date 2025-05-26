@@ -6,13 +6,18 @@ import { useAuthContext } from "../../context/AuthContext";
 import ResultItem from "./ResultItem";
 import {capitalize} from "lodash";
 import LogButton from "../GeneralView/LogButton";
+import styles from "../PreferencesView/Preferences.module.css"
+import { ToggleButton } from "react-bootstrap";
+
 export const RightSidebar = ({ activeResult}) => {
   const {user} = useAuthContext();
   const results = useTravelRecommenderStore((state) => state.results);
-  const {recommendationType} = useTravelRecommenderStore();
+  const {recommendationType, setAlgorithmUsed, algorithmUsed} = useTravelRecommenderStore();
   const [activeIndex, setActiveIndex] = useState(-1);
   const accordElem = useRef(null);
-
+  const isGreedy = algorithmUsed === "greedy"
+  const isGenetic = algorithmUsed === "genetic"
+  const isSingleTrip = recommendationType === 'single';
 
   useEffect(() => {
     if (results.length > 0) {
@@ -34,7 +39,30 @@ export const RightSidebar = ({ activeResult}) => {
     <div className='py-2 pe-2 h-100 overflow-y-scroll overflow-x-hidden'>
       <LogButton/>
 
-      <p className={'m-0'} style={{ textAlign: "left" }}>
+    { !isSingleTrip && <div style={{marginTop:"10px", display: "flex", justifyContent: "space-evenly"}}>
+        <ToggleButton
+          checked={isGreedy}
+          onClick={() => {setAlgorithmUsed("greedy")}}
+          type="checkbox"
+          className={styles.toggle}
+          variant="outline-primary"
+          value={"Greedy Algorithm"}
+        >
+          <span>Greedy Algorithm</span>
+        </ToggleButton>
+        <ToggleButton
+          checked={isGenetic}
+          onClick={() => {setAlgorithmUsed("genetic")}}
+          type="checkbox"
+          className={styles.toggle}
+          variant="outline-primary"
+          value={"Genetic Algorithm"}
+        > <span>Genetic Algorithm</span>
+        </ToggleButton>
+      </div>
+}
+
+      <p className={'mt-4'} style={{ textAlign: "left" }}>
         Best {recommendationType === 'single'? "destination": "composite trip"} for {capitalize(user?.username ?? "you")}
       </p>
 

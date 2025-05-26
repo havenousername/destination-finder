@@ -20,7 +20,8 @@ class LoadCountriesTask {
         setFileRetrieved(response.data.data?.map((region) => ({ ...region.attributes, id: region.id })));
       });
   };
-  processCountries = (countryScores, userData, setCountries, setResults, recommendationType) => {
+  processCountries = (countryScores, userData, setCountries, setResults, recommendationType, algorithmUsed) => {
+
     for (let i = 0; i < this.mapCountries.length; i++) {
       const mapCountry = this.mapCountries[i];
 
@@ -218,7 +219,7 @@ class LoadCountriesTask {
         a.properties.result.scores.totalScore
     );
     setCountries(this.mapCountries);
-    this.setTypeResults(this.allResults, userData, this.mapCountries, setResults, recommendationType)
+    this.setTypeResults(this.allResults, userData, this.mapCountries, setResults, recommendationType, algorithmUsed)
   };
   calculateBudgetLevel = (costPerWeek) => {
     let index = this.allPrices.indexOf(costPerWeek);
@@ -303,19 +304,19 @@ class LoadCountriesTask {
       return 100 - ((countryBudgetLevel - userData.Budget) * 100) / 20;
     }
   };
-  setTypeResults = (results, userData, mapCountries, setResults, type) => {
+  setTypeResults = (results, userData, mapCountries, setResults, type, algorithmUsed) => {
     if (type === "single") {
       this.singleRecommendationAlgorithm(results, setResults)
     }
     else if (type === "composite") {
-      // this.greedyRecommendationAlgorithm(mapCountries, userData, setResults)
-      this.geneticRecommendationAlgorithm(mapCountries,userData, setResults)
+      console.log(algorithmUsed)
+      if(algorithmUsed === "genetic"){
+        this.geneticRecommendationAlgorithm(mapCountries,userData, setResults)
+      }
+      else if(algorithmUsed === "greedy"){
+        this.greedyRecommendationAlgorithm(mapCountries, userData, setResults)
+      }
     }
-    //  console.log(mapCountries)
-    // const start = { latitude: 28.59459476916798 , longitude: 16.48617513428431 }; //16.48617513428431, 28.59459476916798 Libya
-    // const end = { latitude: 34.140400485429936, longitude: 9.853497104541143 }; //9.853497104541143, 34.140400485429936 Tunisia
-    // const distance = haversine(start, end); // by default in kilometers
-    // console.log(distance);
   }
   singleRecommendationAlgorithm = (results, setResults) => {
     results.sort((a, b) => b.scores.totalScore - a.scores.totalScore);
