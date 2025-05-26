@@ -1,12 +1,12 @@
-import React, {useRef, useState, useEffect, useCallback} from "react";
-import {MapContainer, GeoJSON , Marker, Popup} from "react-leaflet";
+import React, { useRef, useState, useEffect, useCallback } from "react";
+import { MapContainer, GeoJSON, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import "./styles/Map.css";
 import Legend from "./components/Legend";
 import useTravelRecommenderStore from "../../store/travelRecommenderStore";
 import LeafletTooltip from "../../components/LeafletPopup";
 import { ReactComponent as MarkerIcon } from '../../images/Marker.svg';
-import {create} from "zustand";
+import { create } from "zustand";
 
 const position = [51.0967884, 5.9671304];
 
@@ -24,6 +24,7 @@ const Map = ({ setActiveResult }) => {
   const [map, setMap] = useState(null);
   const countries = useTravelRecommenderStore((state) => state.countries);
   const travelStore = useTravelRecommenderStore();
+  const {recommendationType} = useTravelRecommenderStore();
   const geoJsonLayer = useRef(null);
   const mapLayers = useRef([]);
   const {
@@ -61,14 +62,36 @@ const Map = ({ setActiveResult }) => {
    * @type {(function($ObjMap, *): void)|*}
    */
   const onEachCountry = useCallback((country, layer) => {
+    // travelStore.results
     const cIndex = countries.findIndex(
       (r) => r.properties.u_name === country.properties.u_name
     );
-    const score = country.properties.result.scores.totalScore;
+
+    let score;
+    const currentRecommendationType = useTravelRecommenderStore.getState().recommendationType;
+    const currentResults = useTravelRecommenderStore.getState().results;
+
+    if (currentRecommendationType === 'single') {
+      score = country.properties.result.scores.totalScore;
+    } else {
+      const existsInResults = currentResults.some(
+        r => r.id === country.properties.result.id
+      );
+
+      if (existsInResults) {
+        score = country.properties.result.scores.totalScore;
+      } else {
+        score = -1;
+      }
+    }
+    // const score = 0;
+
+
+    // console.log(travelStore.results)
     layer.options.fillColor = getColor(score);
 
     if (cIndex < 10 && score > 0) {
-     addNumberToTheIndexedCountry(layer, cIndex);
+      addNumberToTheIndexedCountry(layer, cIndex);
     }
     layer.on({
       mouseover: highlightFeature,
@@ -91,7 +114,7 @@ const Map = ({ setActiveResult }) => {
   const onCountryPopupOpen = (countryId) => {
     const layer = geoJsonLayer.current.getLayer(mapLayers.current[countryId]);
     const { lat, lng } = layer.getCenter();
-    map.flyTo([lat,lng]);
+    map.flyTo([lat, lng]);
     map.once('moveend', () => {
       layer.fireEvent('click', {
         latlng: { lat, lng }
@@ -125,7 +148,7 @@ const Map = ({ setActiveResult }) => {
     });
   };
 
-  const [tooltipPosition, setTooltipPosition] = useState([0,0]);
+  const [tooltipPosition, setTooltipPosition] = useState([0, 0]);
   const [openPopup, setOpenPopup] = useState(false);
   const [selectedResult, setSelectedResult] = useState();
 
@@ -162,28 +185,28 @@ const Map = ({ setActiveResult }) => {
     return d > 90
       ? "#109146"
       : d > 70
-      ? "#7CBA43"
-      : d > 60
-      ? "#FFCC06"
-      : d > 50
-      ? "#F58E1D"
-      : d >= 0
-      ? "#BF1E24"
-      : "#fff";
+        ? "#7CBA43"
+        : d > 60
+          ? "#FFCC06"
+          : d > 50
+            ? "#F58E1D"
+            : d >= 0
+              ? "#BF1E24"
+              : "#fff";
   };
 
   return (
     <div>
       <div>
         <MapContainer
-          style={{height: "100vh", width: "auto"}}
+          style={{ height: "100vh", width: "auto" }}
           zoom={4}
           id={'map'}
           center={position}
           ref={setMap}
           doubleClickZoom={false}
         >
-          
+
 
           <GeoJSON
             ref={geoJsonLayer}
@@ -205,7 +228,7 @@ const Map = ({ setActiveResult }) => {
             country={selectedResult}
             reset={onPopupReset}
           />
-          <Legend map={map}/>
+          <Legend map={map} />
         </MapContainer>
       </div>
     </div>

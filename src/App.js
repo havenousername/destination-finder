@@ -16,7 +16,6 @@ const App = () => {
     const loadCountriesTask = new LoadCountriesTask();
     loadCountriesTask.load(setFileRetrieved);
   };
-  
   const calculateScores = () => {
     if (fileRetrieved?.length > 0) {
       const loadCountriesTask = new LoadCountriesTask();
@@ -27,23 +26,14 @@ const App = () => {
         setResults,
         recommendationType
       );
-      
     }
   };
-  // console.log(countries)
-  // console.log(fileRetrieved)
+
   useEffect(load, []);
   useEffect(calculateScores, [userData, fileRetrieved, setCountries, setResults, recommendationType]);
+
   const auth = useAuthContext();
   const { fetch } = useFavourites();
-
-  // useEffect(() => {
-  //   if (!countries?.[0]?.geometry) return;
-  
-  //   const centroid = turf.centroid(countries[0].geometry);
-  //   console.log("Centroid:", centroid);
-  // }, [countries]);
-  
  
   useEffect(() => {
     if (auth.user?.id) {

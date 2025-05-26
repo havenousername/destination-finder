@@ -19,7 +19,9 @@ const RangedInput = ({userDataKey, title, step = 1, stepsText = ['Low', 'Medium'
   }, 100);
 
   useEffect(() => {
-    setUserDataDelayed(value);
+    if (value != get(userData, userDataKey)) {
+      setUserDataDelayed(value);
+    }
   }, [value]);
 
   return (

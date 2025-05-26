@@ -5,7 +5,6 @@ import React from "react";
 
 
 const ResultItem = ({ accordElem, index, activeIndex, isComposite, setActiveIndex, item }) => {
-  console.log(item)
   const onClick = () => {
     if (index === activeIndex) {
       setActiveIndex(-1);
@@ -43,7 +42,7 @@ const ResultItem = ({ accordElem, index, activeIndex, isComposite, setActiveInde
           </span>
 
           {isComposite && (
-            <span style={{ textAlign: 'center', flexGrow: 1 }}>{item.allocatedWeeks} weeks</span>
+           <span style={{ textAlign: 'center', flexGrow: 1, fontStyle: "italic" }}>{item.allocatedWeeks} weeks</span>
           )}
         </div>
       </Accordion.Header>
