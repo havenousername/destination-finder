@@ -424,7 +424,7 @@ class LoadCountriesTask {
   
     // Penalty rate for distance importance
     const minPenaltyRate = 0.00001;   // very small
-    const maxPenaltyRate = 0.00005;   // a little more than min
+    const maxPenaltyRate = 0.00004;   // a little more than min
     
     let penaltyRate = userData.isDistanceNotImportant
       ? 0
