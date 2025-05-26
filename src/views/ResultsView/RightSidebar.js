@@ -8,11 +8,13 @@ import {capitalize} from "lodash";
 import LogButton from "../GeneralView/LogButton";
 import styles from "../PreferencesView/Preferences.module.css"
 import { ToggleButton } from "react-bootstrap";
+import { ReactComponent as RefreshIcon } from '../../images/refresh.svg';
+
 
 export const RightSidebar = ({ activeResult}) => {
   const {user} = useAuthContext();
   const results = useTravelRecommenderStore((state) => state.results);
-  const {recommendationType, setAlgorithmUsed, algorithmUsed} = useTravelRecommenderStore();
+  const {recommendationType, setAlgorithmUsed, algorithmUsed, refresh, setRefresh} = useTravelRecommenderStore();
   const [activeIndex, setActiveIndex] = useState(-1);
   const accordElem = useRef(null);
   const isGreedy = algorithmUsed === "greedy"
@@ -62,9 +64,40 @@ export const RightSidebar = ({ activeResult}) => {
       </div>
 }
 
-      <p className={'mt-4'} style={{ textAlign: "left" }}>
-        Best {recommendationType === 'single'? "destination": "composite trip"} for {capitalize(user?.username ?? "you")}
-      </p>
+<div style={{ 
+  display: 'flex', 
+  alignItems: 'center', 
+  justifyContent: 'space-between', 
+  marginTop: '1rem', 
+  textAlign: 'left' 
+}}>
+  <p style={{ margin: 0 }}>
+    Best {recommendationType === 'single' ? "destination" : "composite trip"} for {capitalize(user?.username ?? "you")}
+  </p>
+  {!isSingleTrip && isGenetic && (
+    <span
+      style={{ cursor: 'pointer', display: 'inline-block' }}
+      onClick={setRefresh}
+    >
+      <div
+        style={{
+          border: '2px solid #FFFFFF',
+          borderRadius: '8px',
+          padding: '6px',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginRight: "10px",
+          width: '42px',
+          height: '42px',
+        }}
+      >
+        <RefreshIcon fill="#FFFFFF" width="30px" height="30px" />
+      </div>
+    </span>
+  )}
+</div>
+
 
       {results.length > 0 ? (
         <div ref={accordElem}>

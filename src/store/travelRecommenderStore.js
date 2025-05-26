@@ -71,7 +71,9 @@ const useTravelRecommenderStore = create((set) => ({
     results: [],
     recommendationType: 'single',
     algorithmUsed: "greedy",
-    setAlgorithmUsed: (type) => set({ algorithmUsed: type }),
+    refresh: true,
+    setRefresh: () => set(state => ({ refresh: !state.refresh })),
+    setAlgorithmUsed: (algorithm) => set({ algorithmUsed: algorithm }),
     setRecommendationType: (type) => set({ recommendationType: type }),
     setCountries: (newCountries) => set({ countries: newCountries }),
     setUserData: (newUserData) => {
