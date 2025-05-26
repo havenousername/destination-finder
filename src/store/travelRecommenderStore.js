@@ -5,6 +5,10 @@ const useTravelRecommenderStore = create((set) => ({
     userData: {
         isPriceImportant: false,
         Budget: 50,
+        Distance:50,
+        isDistanceNotImportant: false,
+        weekAllocationDistribution: 50,
+        Weeks:50,
         Months: Array(12).fill(0),
         PresetType: [],
         isPeakSeasonImportant: false,
@@ -65,6 +69,12 @@ const useTravelRecommenderStore = create((set) => ({
         },
     },
     results: [],
+    recommendationType: 'single',
+    algorithmUsed: "greedy",
+    refresh: true,
+    setRefresh: () => set(state => ({ refresh: !state.refresh })),
+    setAlgorithmUsed: (algorithm) => set({ algorithmUsed: algorithm }),
+    setRecommendationType: (type) => set({ recommendationType: type }),
     setCountries: (newCountries) => set({ countries: newCountries }),
     setUserData: (newUserData) => {
         set({ userData: newUserData })
