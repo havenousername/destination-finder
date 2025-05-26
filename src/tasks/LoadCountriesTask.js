@@ -309,7 +309,6 @@ class LoadCountriesTask {
       this.singleRecommendationAlgorithm(results, setResults)
     }
     else if (type === "composite") {
-      console.log(algorithmUsed)
       if(algorithmUsed === "genetic"){
         this.geneticRecommendationAlgorithm(mapCountries,userData, setResults)
       }
@@ -344,6 +343,7 @@ class LoadCountriesTask {
     const maxPenaltyRate = 0.01;     // Much stronger penalty when distance importance is high
 
     let penaltyRate = minPenaltyRate + (maxPenaltyRate - minPenaltyRate) * (userData.Distance / 100); //linear interpolation
+
 
     if (userData.isDistanceNotImportant) {
       penaltyRate = 0;
@@ -423,11 +423,13 @@ class LoadCountriesTask {
     let totalBudget = budgetPerWeek * numberOfWeeks;
   
     // Penalty rate for distance importance
-    const minPenaltyRate = 0.00001;
-    const maxPenaltyRate = 0.01;
+    const minPenaltyRate = 0.00001;   // very small
+    const maxPenaltyRate = 0.00005;   // a little more than min
+    
     let penaltyRate = userData.isDistanceNotImportant
       ? 0
       : minPenaltyRate + (maxPenaltyRate - minPenaltyRate) * (userData.Distance / 100);
+    
   
     // Max number of regions a chromosome can have (set to mapCountries length)
     const maxRegions = mapCountries.length;
@@ -469,11 +471,13 @@ class LoadCountriesTask {
               longitude: chromosome[j].geometry.centroid.geometry.coordinates[0],
             }
           );
-          penalty *= (1 - penaltyRate * dist);
+          penalty *= Math.exp(-penaltyRate * dist);
+         
         }
       }
       return penalty;
     }
+    
   
     // Utility: Fitness score with dynamic chromosome length and budget check
     function computeFitness(chromosome) {

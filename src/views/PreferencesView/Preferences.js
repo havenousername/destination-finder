@@ -46,7 +46,7 @@ const Preferences = () => {
       { !isSingleTrip &&<div className='mb-4'>
         <RangedPreference
           userDataKey='Distance'
-          title='Distance between regions'
+          title='Distance penalty between regions'
           checkKey='isDistanceNotImportant'
           stepsText={['Low', 'Medium','High']}
           checkLabel='Dont consider distance between countries'
