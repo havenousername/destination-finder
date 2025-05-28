@@ -5,12 +5,14 @@ import LoadCountriesTask from "./tasks/LoadCountriesTask";
 import Loading from "./views/GeneralView/Loading";
 import useTravelRecommenderStore from "./store/travelRecommenderStore";
 import AppRoutes from "./Routes";
+import {useAuthContext} from "./context/AuthContext";
+import {useFavourites} from "./hooks/useFavourites";
+import * as turf from '@turf/turf';
 import {useLoadFavourites} from "./hooks/useLoadFavourites";
 
 const App = () => {
   const [fileRetrieved, setFileRetrieved] = useState([]);
-  const { countries, setCountries, setResults, userData } = useTravelRecommenderStore();
-  
+  const { countries, setCountries, setResults, userData, recommendationType, algorithmUsed, refresh} = useTravelRecommenderStore();
   const load = () => {
     const loadCountriesTask = new LoadCountriesTask();
     loadCountriesTask.load(setFileRetrieved);
@@ -22,15 +24,26 @@ const App = () => {
         fileRetrieved,
         userData,
         setCountries,
-        setResults
+        setResults,
+        recommendationType,
+        algorithmUsed
       );
     }
   };
+
+  useEffect(load, []);
+  useEffect(calculateScores, [userData, fileRetrieved, setCountries, setResults, recommendationType, algorithmUsed, refresh]);
+
+  const auth = useAuthContext();
+  const { fetch } = useFavourites();
+
   useEffect(() => {
-    load();
-  }, []);
-  useEffect(calculateScores, [userData, fileRetrieved, setCountries, setResults]);
-  useLoadFavourites();
+    if (auth.user?.id) {
+      // console.log(auth.user);
+      fetch(auth.user.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auth.user]);
 
   return (
     <div style={{ height: "100vh" }}>
