@@ -19,6 +19,7 @@ export const RightSidebar = ({ activeResult}) => {
   const accordElem = useRef(null);
   const isGreedy = algorithmUsed === "greedy"
   const isGenetic = algorithmUsed === "genetic"
+  const isDynamic = algorithmUsed === "dynamic"
   const isSingleTrip = recommendationType === 'single';
 
   useEffect(() => {
@@ -60,6 +61,15 @@ export const RightSidebar = ({ activeResult}) => {
           variant="outline-primary"
           value={"Genetic Algorithm"}
         > <span>Genetic Algorithm</span>
+        </ToggleButton>
+        <ToggleButton
+          checked={isDynamic}
+          onClick={() => {setAlgorithmUsed("dynamic")}}
+          type="checkbox"
+          className={styles.toggle}
+          variant="outline-primary"
+          value={"Dynamic Algorithm"}
+        > <span>Dynamic Algorithm</span>
         </ToggleButton>
       </div>
 }
