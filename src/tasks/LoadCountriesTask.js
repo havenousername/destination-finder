@@ -3,6 +3,7 @@ import axios from 'axios';
 import { getShortMonths } from "../helpers/months";
 import * as turf from '@turf/turf';
 import haversine from 'haversine';
+import { AlgorithmComparison } from './AlgorithmComparison';
 // import solver from 'javascript-lp-solver';
 
 
@@ -20,7 +21,7 @@ class LoadCountriesTask {
         setFileRetrieved(response.data.data?.map((region) => ({ ...region.attributes, id: region.id })));
       });
   };
-  processCountries = (countryScores, userData, setCountries, setResults, recommendationType, algorithmUsed) => {
+  processCountries = (countryScores, userData, setCountries, setResults, recommendationType, algorithmUsed,algorithmParameters) => {
 
     for (let i = 0; i < this.mapCountries.length; i++) {
       const mapCountry = this.mapCountries[i];
@@ -218,7 +219,7 @@ class LoadCountriesTask {
         a.properties.result.scores.totalScore
     );
     setCountries(this.mapCountries);
-    this.setTypeResults(this.allResults, userData, this.mapCountries, setResults, recommendationType, algorithmUsed)
+    this.setTypeResults(this.allResults, userData, this.mapCountries, setResults, recommendationType, algorithmUsed, algorithmParameters)
   };
   calculateBudgetLevel = (costPerWeek) => {
     let index = this.allPrices.indexOf(costPerWeek);
@@ -303,20 +304,20 @@ class LoadCountriesTask {
       return 100 - ((countryBudgetLevel - userData.Budget) * 100) / 20;
     }
   };
-  setTypeResults = (results, userData, mapCountries, setResults, type, algorithmUsed) => {
+  setTypeResults = (results, userData, mapCountries, setResults, type, algorithmUsed, algorithmParameters) => {
     if (type === "single") {
       this.singleRecommendationAlgorithm(results, setResults)
     }
     else if (type === "composite") {
-
+      // console.log(this.runAlgorithmComparison(mapCountries))
       if (algorithmUsed === "genetic") {
-        this.geneticRecommendationAlgorithm(mapCountries, userData, setResults)
+        this.geneticRecommendationAlgorithm(mapCountries, userData, setResults, algorithmParameters)
       }
       else if (algorithmUsed === "greedy") {
-        this.greedyRecommendationAlgorithm(mapCountries, userData, setResults)
+        this.greedyRecommendationAlgorithm(mapCountries, userData, setResults, algorithmParameters)
       }
       else {
-        this.dynamicDPDominanceRecommendation(mapCountries, userData, setResults)
+        this.dynamicDPDominanceRecommendation(mapCountries, userData, setResults, algorithmParameters)
       }
     }
   }
@@ -325,12 +326,20 @@ class LoadCountriesTask {
     results = this.allResults.filter((a) => a.scores.totalScore > 0);
     setResults(results.slice(0, 10));
   }
-
-  greedyRecommendationAlgorithm = (mapCountries, userData, setResults) => {
+  runAlgorithmComparison = (mapCountries) => {
+        const algorithmComparison = new AlgorithmComparison(
+          this.greedyRecommendationAlgorithm,
+          this.geneticRecommendationAlgorithm,
+          this.dynamicDPDominanceRecommendation
+        );
+        return algorithmComparison.compareAlgorithms(mapCountries);
+      };
+  greedyRecommendationAlgorithm = (mapCountries, userData, setResults, algorithmParameters) => {
 
     mapCountries.sort((a, b) =>
       b.properties.result.scores.totalScore - a.properties.result.scores.totalScore
     );
+    
 
     let budget;
     let numberOfWeeks = Math.round(1 + userData.Weeks / 5);
@@ -342,8 +351,8 @@ class LoadCountriesTask {
       budget = 900 * numberOfWeeks;  // mid budget per week is 900
     }
 
-    const minPenaltyRate = 0.00001;   // Light penalty when distance importance is low
-    const maxPenaltyRate = 0.01;     // Much stronger penalty when distance importance is high
+    const minPenaltyRate = algorithmParameters.distanceDecay.minPenaltyRate;   // very small
+    const maxPenaltyRate = algorithmParameters.distanceDecay.maxPenaltyRate;   // a little more than min
 
     let penaltyRate = minPenaltyRate + (maxPenaltyRate - minPenaltyRate) * (userData.Distance / 100); //linear interpolation
 
@@ -398,8 +407,12 @@ class LoadCountriesTask {
       selectedRegions.push(bestCandidate);
     }
 
-    const allocatedRegions = this.allocateWeeksILP(selectedRegions, numberOfWeeks, numberOfWeeks / 2, userData.weekAllocationDistribution / 10);
-
+    const allocatedRegions = this.allocateWeeksILP(
+      selectedRegions,
+      numberOfWeeks,
+      Math.ceil(numberOfWeeks * algorithmParameters.weekAllocation.maxWeeksPerRegionRatio), // Use ratio from store
+      userData.weekAllocationDistribution * algorithmParameters.weekAllocation.lambdaPenalty.scaling
+    );
     setResults(
       allocatedRegions.map(({ region, weeks }) => ({
         ...region.properties.result,
@@ -414,9 +427,10 @@ class LoadCountriesTask {
     mapCountries,
     userData,
     setResults,
+    algorithmParameters,
     populationSize = 20,
     generations = 200,
-    mutationRate = 0.01
+    mutationRate = 0.01  
   ) => {
     // Number of weeks user can allocate
     let numberOfWeeks = Math.round(1 + userData.Weeks / 5);
@@ -426,8 +440,8 @@ class LoadCountriesTask {
     let totalBudget = budgetPerWeek * numberOfWeeks;
 
     // Penalty rate for distance importance
-    const minPenaltyRate = 0.00001;   // very small
-    const maxPenaltyRate = 0.00004;   // a little more than min
+    const minPenaltyRate = algorithmParameters.distanceDecay.minPenaltyRate;   // very small
+    const maxPenaltyRate = algorithmParameters.distanceDecay.maxPenaltyRate;   // a little more than min
 
     let penaltyRate = userData.isDistanceNotImportant
       ? 0
@@ -587,10 +601,9 @@ class LoadCountriesTask {
     const allocatedRegions = this.allocateWeeksILP(
       bestChromosome,
       numberOfWeeks,
-      Math.ceil(numberOfWeeks / 2),
-      userData.weekAllocationDistribution / 10
+      Math.ceil(numberOfWeeks * algorithmParameters.weekAllocation.maxWeeksPerRegionRatio), // Use ratio from store
+      userData.weekAllocationDistribution * algorithmParameters.weekAllocation.lambdaPenalty.scaling
     );
-
     setResults(
       allocatedRegions.map(({ region, weeks }) => ({
         ...region.properties.result,
@@ -598,6 +611,279 @@ class LoadCountriesTask {
       }))
     );
   };
+
+
+  
+  // Main function: Dynamic Programming Region Recommendation with Per-Attribute Distance Penalty
+  
+  dynamicDPDominanceRecommendation = (mapCountries, userData, setResults, algorithmParameters) => {
+    // ---- Helper: Attribute Score Accessor (for weighted/unweighted attribute objects) ----
+    function getAttributeScore(scoresObj, att) {
+      const val = scoresObj[att];
+      if (val && typeof val === 'object' && 'score' in val && 'weight' in val && val.weight !== 0) {
+        return val.score / val.weight;
+      }
+      if (val && typeof val === 'object' && 'score' in val) {
+        return val.score; // fallback
+      }
+      return val;
+    }
+  
+    // ---- Helper: Strict Dominance Pruning ----
+    function strictlyDominatedRegions(regionArray, attributes) {
+      const dominatedIdx = new Set();
+      for (let i = 0; i < regionArray.length; i++) {
+        for (let j = 0; j < regionArray.length; j++) {
+          if (i === j) continue;
+          let all_le = true, one_strict_less = false;
+          for (let k = 0; k < attributes.length; k++) {
+            let ai = getAttributeScore(regionArray[i].properties.result.scores, attributes[k]);
+            let aj = getAttributeScore(regionArray[j].properties.result.scores, attributes[k]);
+            if (ai > aj) all_le = false;
+            if (ai < aj) one_strict_less = true;
+          }
+          if (all_le && one_strict_less) {
+            dominatedIdx.add(i);
+            break;
+          }
+        }
+      }
+      return dominatedIdx;
+    }
+  
+    // ---- Helper: Custom Dominance Score (EC, DD, CDS) ----
+    function customDominanceScores(regionArray, attributes, alpha = 0.5) {
+      // Excellence Count per attribute
+      const ec = regionArray.map(_ => attributes.map(_ => 0));
+      for (let a = 0; a < attributes.length; a++) {
+        for (let i = 0; i < regionArray.length; i++) {
+          for (let j = 0; j < regionArray.length; j++) {
+            if (i === j) continue;
+            let ai = getAttributeScore(regionArray[i].properties.result.scores, attributes[a]);
+            let aj = getAttributeScore(regionArray[j].properties.result.scores, attributes[a]);
+            if (ai > aj) ec[i][a]++;
+          }
+        }
+        let maxCount = Math.max(...ec.map(row => row[a]));
+        for (let i = 0; i < regionArray.length; i++) {
+          if (maxCount !== 0) ec[i][a] /= maxCount;
+        }
+      }
+      const ecPerf = ec.map(arr => arr.reduce((a, b) => a + b, 0) / arr.length);
+  
+      // Dominance Degree per attribute
+      const dd = regionArray.map(_ => attributes.map(_ => 0));
+      for (let a = 0; a < attributes.length; a++) {
+        for (let i = 0; i < regionArray.length; i++) {
+          for (let j = 0; j < regionArray.length; j++) {
+            if (i === j) continue;
+            let ai = getAttributeScore(regionArray[i].properties.result.scores, attributes[a]);
+            let aj = getAttributeScore(regionArray[j].properties.result.scores, attributes[a]);
+            if (ai > aj) dd[i][a] += (ai - aj);
+          }
+        }
+        let maxDom = Math.max(...dd.map(row => row[a]));
+        for (let i = 0; i < regionArray.length; i++) {
+          if (maxDom !== 0) dd[i][a] /= maxDom;
+        }
+      }
+      const ddPerf = dd.map(arr => arr.reduce((a, b) => a + b, 0) / arr.length);
+  
+      // Composite Score: weighted sum
+      const composite = regionArray.map((_, i) => alpha * ecPerf[i] + (1 - alpha) * ddPerf[i]);
+      return composite.map((score, idx) => ({ idx, score }))
+        .sort((a, b) => b.score - a.score);
+    }
+  
+    // ---- Parameters and Budget Calculation ----
+    let numberOfWeeks = Math.round(1 + userData.Weeks / 5);
+    let budget;
+    if (userData.Budget === 0) {
+      budget = 225 * numberOfWeeks;
+    } else if (userData.Budget === 50) {
+      budget = 450 * numberOfWeeks;
+    } else if (userData.Budget === 100) {
+      budget = 900 * numberOfWeeks;
+    }
+  
+    // Penalty rate setup
+    const minPenaltyRate = algorithmParameters.distanceDecay.minPenaltyRate;   // very small
+    const maxPenaltyRate = algorithmParameters.distanceDecay.maxPenaltyRate;   // a little more than min
+
+    let penaltyRate = minPenaltyRate + (maxPenaltyRate - minPenaltyRate) * Math.pow(userData.Distance / 10, 2);
+    
+    if (userData.isDistanceNotImportant) {
+      penaltyRate = 0;
+    }
+  
+    // Attributes used for dominance
+    const attributes = ['budgetScore', 'totalAttrScore', 'travelMonthScore', 'visitorScore', 'penalizedScore'];
+  
+    // Initial sort by totalScore
+    mapCountries.sort((a, b) =>
+      b.properties.result.scores.totalScore - a.properties.result.scores.totalScore
+    );
+  
+    // ---- Iterative Selection ----
+    let selectedRegions = [];
+    let availableRegions = [...mapCountries];
+    let currentBudget = budget;
+  
+    // Select region with highest totalScore and remove from pool
+    selectedRegions.push(availableRegions[0]);
+    currentBudget -= availableRegions[0].properties.result.price;
+    availableRegions.splice(0, 1);
+  
+    while (true) {
+      // Remove strictly dominated regions
+      let dominated = strictlyDominatedRegions(availableRegions, attributes);
+      let filteredRegions = availableRegions.filter((_, idx) => !dominated.has(idx));
+      if (filteredRegions.length === 0) break;
+  
+      // Affordable only
+      let affordable = filteredRegions.filter(r => r.properties.result.price <= currentBudget);
+      if (affordable.length === 0) break;
+  
+      // ---- Penalty application: apply to EACH ATTRIBUTE ----
+      affordable.forEach(candidate => {
+        // Compute total penalty factor based on all selected regions
+        let totalPenalty = 1.0;
+        for (const selected of selectedRegions) {
+          const candidateCoord = {
+            latitude: candidate.geometry.centroid.geometry.coordinates[1],
+            longitude: candidate.geometry.centroid.geometry.coordinates[0]
+          };
+          const selectedCoord = {
+            latitude: selected.geometry.centroid.geometry.coordinates[1],
+            longitude: selected.geometry.centroid.geometry.coordinates[0]
+          };
+          const dist = haversine(selectedCoord, candidateCoord);
+          totalPenalty *= Math.exp(-penaltyRate * dist);
+          
+        }
+        // For each attribute, apply penalty
+        for (const attr of attributes) {
+          let originalScore = candidate.properties.result.scores[attr];
+          if (typeof originalScore !== 'number') continue;
+          candidate.properties.result.scores[attr] = originalScore * totalPenalty;
+          // console.log(originalScore * totalPenalty)
+        }
+      });
+  
+      // ---- Custom Dominance: compute composite score if enough candidates ----
+      let candidates;
+      if (affordable.length >= 2) {
+        let dominanceRanking = customDominanceScores(affordable, attributes);
+        const best = dominanceRanking[0].idx;
+        candidates = [affordable[best]];
+      } else {
+        candidates = affordable;
+      }
+      if (candidates.length === 0) break;
+      let toAdd = candidates[0];
+  
+      // Update budget/selection/pool
+      currentBudget -= toAdd.properties.result.price;
+      selectedRegions.push(toAdd);
+      availableRegions = availableRegions.filter(r => r !== toAdd);
+    }
+  
+    // ---- Week Distribution Optimization ----
+    // This uses an ILP-based allocation method (provided by you)
+    // Adjust the arguments as per your allocation function requirements
+    const allocatedRegions = this.allocateWeeksILP(
+      selectedRegions,
+      numberOfWeeks,
+      Math.ceil(numberOfWeeks * algorithmParameters.weekAllocation.maxWeeksPerRegionRatio), // Use ratio from store
+      userData.weekAllocationDistribution * algorithmParameters.weekAllocation.lambdaPenalty.scaling,
+      algorithmParameters.weekAllocation.penaltyFunction
+    );
+  
+    // ---- Set Final Results ----
+    setResults(
+      allocatedRegions.map(({ region, weeks }) => ({
+        ...region.properties.result,
+        allocatedWeeks: weeks
+      }))
+    );
+  }
+
+  allocateWeeksILP = (regions, totalWeeks, maxWeeksPerRegion, lambdaPenalty, penaltyFunction) => {
+    const model = {
+        optimize: 'totalScore',
+        opType: 'max',
+        constraints: {
+            weeks: { max: totalWeeks }
+        },
+        variables: {},
+        ints: {}
+    };
+    const mu = totalWeeks / regions.length;
+
+    // Add variables: each variable means "region i gets w weeks"
+    regions.forEach((region, i) => {
+        for (let w = 1; w <= maxWeeksPerRegion; w++) {
+            const varName = `r${i}_w${w}`;
+            
+            // Calculate penalty term based on penalty function
+            let penalty;
+            switch(penaltyFunction) {
+                case "quadratic":
+                    penalty = lambdaPenalty * Math.pow(w - mu, 2);
+                    break;
+                case "linear":
+                    penalty = lambdaPenalty * Math.abs(w - mu);
+                    break;
+                case "cubic":
+                    penalty = lambdaPenalty * Math.pow(w - mu, 3);
+                    break;
+                default:
+                    penalty = lambdaPenalty * Math.pow(w - mu, 2); // default to quadratic
+            }
+
+            // Adjusted totalScore subtracts penalty
+            const adjustedScore = region.properties.result.scores.totalScore * w - penalty;
+
+            model.variables[varName] = {
+                totalScore: adjustedScore,
+                weeks: w
+            };
+            model.ints[varName] = 1;
+        }
+    });
+
+    // Constraint: Each region can have only one week allocation (binary sum = 1)
+    regions.forEach((_, i) => {
+        const constraintName = `only_one_week_r${i}`;
+        model.constraints[constraintName] = { max: 1 };
+        for (let w = 1; w <= maxWeeksPerRegion; w++) {
+            const varName = `r${i}_w${w}`;
+            model.variables[varName][constraintName] = 1;
+        }
+    });
+
+    // Solve ILP
+    const results = window.solver.Solve(model);
+
+    // Extract allocation from solution
+    const allocation = [];
+    regions.forEach((region, i) => {
+        for (let w = 1; w <= maxWeeksPerRegion; w++) {
+            const varName = `r${i}_w${w}`;
+            if (results[varName] === 1) {
+                allocation.push({ region, weeks: w });
+            }
+        }
+    });
+
+    return allocation;
+};
+
+
+}
+
+export default LoadCountriesTask;
+
 
 
   // dynamicDPDominanceRecommendation = (mapCountries, userData, setResults) => {
@@ -789,257 +1075,3 @@ class LoadCountriesTask {
   //     }))
   //   );
   // }
-
-  // Main function: Dynamic Programming Region Recommendation with Per-Attribute Distance Penalty
-  
-  dynamicDPDominanceRecommendation = (mapCountries, userData, setResults) => {
-    // ---- Helper: Attribute Score Accessor (for weighted/unweighted attribute objects) ----
-    function getAttributeScore(scoresObj, att) {
-      const val = scoresObj[att];
-      if (val && typeof val === 'object' && 'score' in val && 'weight' in val && val.weight !== 0) {
-        return val.score / val.weight;
-      }
-      if (val && typeof val === 'object' && 'score' in val) {
-        return val.score; // fallback
-      }
-      return val;
-    }
-  
-    // ---- Helper: Strict Dominance Pruning ----
-    function strictlyDominatedRegions(regionArray, attributes) {
-      const dominatedIdx = new Set();
-      for (let i = 0; i < regionArray.length; i++) {
-        for (let j = 0; j < regionArray.length; j++) {
-          if (i === j) continue;
-          let all_le = true, one_strict_less = false;
-          for (let k = 0; k < attributes.length; k++) {
-            let ai = getAttributeScore(regionArray[i].properties.result.scores, attributes[k]);
-            let aj = getAttributeScore(regionArray[j].properties.result.scores, attributes[k]);
-            if (ai > aj) all_le = false;
-            if (ai < aj) one_strict_less = true;
-          }
-          if (all_le && one_strict_less) {
-            dominatedIdx.add(i);
-            break;
-          }
-        }
-      }
-      return dominatedIdx;
-    }
-  
-    // ---- Helper: Custom Dominance Score (EC, DD, CDS) ----
-    function customDominanceScores(regionArray, attributes, alpha = 0.5) {
-      // Excellence Count per attribute
-      const ec = regionArray.map(_ => attributes.map(_ => 0));
-      for (let a = 0; a < attributes.length; a++) {
-        for (let i = 0; i < regionArray.length; i++) {
-          for (let j = 0; j < regionArray.length; j++) {
-            if (i === j) continue;
-            let ai = getAttributeScore(regionArray[i].properties.result.scores, attributes[a]);
-            let aj = getAttributeScore(regionArray[j].properties.result.scores, attributes[a]);
-            if (ai > aj) ec[i][a]++;
-          }
-        }
-        let maxCount = Math.max(...ec.map(row => row[a]));
-        for (let i = 0; i < regionArray.length; i++) {
-          if (maxCount !== 0) ec[i][a] /= maxCount;
-        }
-      }
-      const ecPerf = ec.map(arr => arr.reduce((a, b) => a + b, 0) / arr.length);
-  
-      // Dominance Degree per attribute
-      const dd = regionArray.map(_ => attributes.map(_ => 0));
-      for (let a = 0; a < attributes.length; a++) {
-        for (let i = 0; i < regionArray.length; i++) {
-          for (let j = 0; j < regionArray.length; j++) {
-            if (i === j) continue;
-            let ai = getAttributeScore(regionArray[i].properties.result.scores, attributes[a]);
-            let aj = getAttributeScore(regionArray[j].properties.result.scores, attributes[a]);
-            if (ai > aj) dd[i][a] += (ai - aj);
-          }
-        }
-        let maxDom = Math.max(...dd.map(row => row[a]));
-        for (let i = 0; i < regionArray.length; i++) {
-          if (maxDom !== 0) dd[i][a] /= maxDom;
-        }
-      }
-      const ddPerf = dd.map(arr => arr.reduce((a, b) => a + b, 0) / arr.length);
-  
-      // Composite Score: weighted sum
-      const composite = regionArray.map((_, i) => alpha * ecPerf[i] + (1 - alpha) * ddPerf[i]);
-      return composite.map((score, idx) => ({ idx, score }))
-        .sort((a, b) => b.score - a.score);
-    }
-  
-    // ---- Parameters and Budget Calculation ----
-    let numberOfWeeks = Math.round(1 + userData.Weeks / 5);
-    let budget;
-    if (userData.Budget === 0) {
-      budget = 225 * numberOfWeeks;
-    } else if (userData.Budget === 50) {
-      budget = 450 * numberOfWeeks;
-    } else if (userData.Budget === 100) {
-      budget = 900 * numberOfWeeks;
-    }
-  
-    // Penalty rate setup
-    const minPenaltyRate = 0;   // very small
-    const maxPenaltyRate = 0.000055;   // a little more than min
-
-    let penaltyRate = minPenaltyRate + (maxPenaltyRate - minPenaltyRate) * Math.pow(userData.Distance / 10, 2);
-    
-    if (userData.isDistanceNotImportant) {
-      penaltyRate = 0;
-    }
-  
-    // Attributes used for dominance
-    const attributes = ['budgetScore', 'totalAttrScore', 'travelMonthScore', 'visitorScore', 'penalizedScore'];
-  
-    // Initial sort by totalScore
-    mapCountries.sort((a, b) =>
-      b.properties.result.scores.totalScore - a.properties.result.scores.totalScore
-    );
-  
-    // ---- Iterative Selection ----
-    let selectedRegions = [];
-    let availableRegions = [...mapCountries];
-    let currentBudget = budget;
-  
-    // Select region with highest totalScore and remove from pool
-    selectedRegions.push(availableRegions[0]);
-    currentBudget -= availableRegions[0].properties.result.price;
-    availableRegions.splice(0, 1);
-  
-    while (true) {
-      // Remove strictly dominated regions
-      let dominated = strictlyDominatedRegions(availableRegions, attributes);
-      let filteredRegions = availableRegions.filter((_, idx) => !dominated.has(idx));
-      if (filteredRegions.length === 0) break;
-  
-      // Affordable only
-      let affordable = filteredRegions.filter(r => r.properties.result.price <= currentBudget);
-      if (affordable.length === 0) break;
-  
-      // ---- Penalty application: apply to EACH ATTRIBUTE ----
-      affordable.forEach(candidate => {
-        // Compute total penalty factor based on all selected regions
-        let totalPenalty = 1.0;
-        for (const selected of selectedRegions) {
-          const candidateCoord = {
-            latitude: candidate.geometry.centroid.geometry.coordinates[1],
-            longitude: candidate.geometry.centroid.geometry.coordinates[0]
-          };
-          const selectedCoord = {
-            latitude: selected.geometry.centroid.geometry.coordinates[1],
-            longitude: selected.geometry.centroid.geometry.coordinates[0]
-          };
-          const dist = haversine(selectedCoord, candidateCoord);
-          totalPenalty *= Math.exp(-penaltyRate * dist);
-          
-        }
-        // For each attribute, apply penalty
-        for (const attr of attributes) {
-          let originalScore = candidate.properties.result.scores[attr];
-          if (typeof originalScore !== 'number') continue;
-          candidate.properties.result.scores[attr] = originalScore * totalPenalty;
-          console.log(originalScore * totalPenalty)
-        }
-      });
-  
-      // ---- Custom Dominance: compute composite score if enough candidates ----
-      let candidates;
-      if (affordable.length >= 2) {
-        let dominanceRanking = customDominanceScores(affordable, attributes);
-        const best = dominanceRanking[0].idx;
-        candidates = [affordable[best]];
-      } else {
-        candidates = affordable;
-      }
-      if (candidates.length === 0) break;
-      let toAdd = candidates[0];
-  
-      // Update budget/selection/pool
-      currentBudget -= toAdd.properties.result.price;
-      selectedRegions.push(toAdd);
-      availableRegions = availableRegions.filter(r => r !== toAdd);
-    }
-  
-    // ---- Week Distribution Optimization ----
-    // This uses an ILP-based allocation method (provided by you)
-    // Adjust the arguments as per your allocation function requirements
-    const allocatedRegions = this.allocateWeeksILP(
-      selectedRegions,
-      numberOfWeeks,
-      Math.ceil(numberOfWeeks / 2), // This is a sample: change if your function expects something else
-      userData.weekAllocationDistribution / 10
-    );
-  
-    // ---- Set Final Results ----
-    setResults(
-      allocatedRegions.map(({ region, weeks }) => ({
-        ...region.properties.result,
-        allocatedWeeks: weeks
-      }))
-    );
-  }
-
-  allocateWeeksILP = (regions, totalWeeks, maxWeeksPerRegion, lambdaPenalty) => {
-    const model = {
-      optimize: 'totalScore',
-      opType: 'max',
-      constraints: {
-        weeks: { max: totalWeeks }
-      },
-      variables: {},
-      ints: {}
-    };
-    const mu = totalWeeks / regions.length;
-
-    // Add variables: each variable means "region i gets w weeks"
-    regions.forEach((region, i) => {
-      for (let w = 1; w <= maxWeeksPerRegion; w++) {
-        const varName = `r${i}_w${w}`;
-        // Calculate penalty term for deviation from mu
-        const penalty = lambdaPenalty * Math.pow(w - mu, 2);
-        // Adjusted totalScore subtracts penalty
-        const adjustedScore = region.properties.result.scores.totalScore * w - penalty;
-
-        model.variables[varName] = {
-          totalScore: adjustedScore,
-          weeks: w
-        };
-        model.ints[varName] = 1;
-      }
-    });
-
-
-    // Constraint: Each region can have only one week allocation (binary sum = 1)
-    regions.forEach((_, i) => {
-      const constraintName = `only_one_week_r${i}`;
-      model.constraints[constraintName] = { max: 1 };
-      for (let w = 1; w <= maxWeeksPerRegion; w++) {
-        const varName = `r${i}_w${w}`;
-        model.variables[varName][constraintName] = 1;
-      }
-    });
-
-    // Solve ILP
-    const results = window.solver.Solve(model);
-
-    // Extract allocation from solution
-    const allocation = [];
-    regions.forEach((region, i) => {
-      for (let w = 1; w <= maxWeeksPerRegion; w++) {
-        const varName = `r${i}_w${w}`;
-        if (results[varName] === 1) {
-          allocation.push({ region, weeks: w });
-        }
-      }
-    });
-
-    return allocation;
-  }
-
-}
-
-export default LoadCountriesTask;
