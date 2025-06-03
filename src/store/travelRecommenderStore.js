@@ -5,10 +5,10 @@ const useTravelRecommenderStore = create((set) => ({
     userData: {
         isPriceImportant: false,
         Budget: 50,
-        Distance:50,
+        Distance: 50,
         isDistanceNotImportant: false,
         weekAllocationDistribution: 50,
-        Weeks:50,
+        Weeks: 50,
         Months: Array(12).fill(0),
         PresetType: [],
         isPeakSeasonImportant: false,
@@ -68,18 +68,155 @@ const useTravelRecommenderStore = create((set) => ({
             },
         },
     },
+
+    // Algorithm Parameters moved to root level
+    algorithmParameters: {
+        // Shared configurations
+        weekAllocation: {
+            maxWeeksPerRegionRatio: 0.5,
+            lambdaPenalty: {
+                percentage: true,
+                range: {
+                    min: 0,
+                    max: 100
+                },
+                scaling: 0.1,
+                description: "Percentage-based penalty (0-100%) scaled by 0.1 to control distribution uniformity"
+            },
+            penaltyFunction: "quadratic",
+            description: {
+                maxWeeksPerRegionRatio: "Maximum weeks per region as ratio of total weeks",
+                lambdaPenalty: "Penalty weight for deviation from mean distribution",
+                penaltyFunction: "Type of penalty function for deviation from mean"
+            }
+        },
+
+        distanceDecay: {
+            strategy: "exponential",
+            minPenaltyRate: 0.00001,
+            maxPenaltyRate: 0.01,
+            scalingFunction: "linear",
+            description: {
+                strategy: "Method used to decay distance penalties (exponential/linear/quadratic)",
+                minPenaltyRate: "Minimum penalty rate for distance calculations",
+                maxPenaltyRate: "Maximum penalty rate for distance calculations",
+                scalingFunction: "How user distance preference is scaled"
+            }
+        },
+
+        // Algorithm-specific parameters
+        genetic: {
+            populationSize: 20,
+            generations: 200,
+            mutationRate: 0.01,
+            tournamentSize: 3,
+            description: {
+                populationSize: "Number of chromosomes in each generation",
+                generations: "Number of evolution iterations",
+                mutationRate: "Probability of mutation occurring",
+                tournamentSize: "Number of candidates in tournament selection"
+            }
+
+            // const minPenaltyRate = 0.00001;   // very small
+            // const maxPenaltyRate = 0.00004;   // a little more than min
+        },
+
+        greedy: {
+        // No additional parameters needed
+        // const minPenaltyRate = 0.00001;   // Light penalty when distance importance is low
+        // const maxPenaltyRate = 0.01;     // Much stronger penalty when distance importance is high
+        },
+
+        dynamic: {
+            dominance: {
+                alpha: 0.5,
+                attributes: ['budgetScore', 'totalAttrScore', 'travelMonthScore',
+                    'visitorScore', 'penalizedScore'],
+                normalization: "maxNorm",
+                description: {
+                    alpha: "Weight between Excellence Count and Dominance Degree",
+                    attributes: "Attributes used for dominance comparison",
+                    normalization: "Method used to normalize scores"
+                }
+            }
+            // const minPenaltyRate = 0;   // very small
+            // const maxPenaltyRate = 0.000055;   // a little more than min
+        }
+    },
+
     results: [],
     recommendationType: 'single',
     algorithmUsed: "greedy",
     refresh: true,
+
+    // Actions
     setRefresh: () => set(state => ({ refresh: !state.refresh })),
     setAlgorithmUsed: (algorithm) => set({ algorithmUsed: algorithm }),
     setRecommendationType: (type) => set({ recommendationType: type }),
     setCountries: (newCountries) => set({ countries: newCountries }),
-    setUserData: (newUserData) => {
-        set({ userData: newUserData })
-    },
+    setUserData: (newUserData) => set({ userData: newUserData }),
     setResults: (newResults) => set({ results: newResults }),
+
+    // Algorithm parameter actions
+    setAlgorithmParameter: (algorithmType, paramName, value) => 
+        set(state => ({
+            algorithmParameters: {
+                ...state.algorithmParameters,
+                [algorithmType]: {
+                    ...state.algorithmParameters[algorithmType],
+                    [paramName]: value
+                }
+            }
+        })),
+
+    setWeekAllocationParameter: (paramName, value) => 
+        set(state => ({
+            algorithmParameters: {
+                ...state.algorithmParameters,
+                weekAllocation: {
+                    ...state.algorithmParameters.weekAllocation,
+                    [paramName]: value
+                }
+            }
+        })),
+
+    setDistanceDecayParameter: (paramName, value) => 
+        set(state => ({
+            algorithmParameters: {
+                ...state.algorithmParameters,
+                distanceDecay: {
+                    ...state.algorithmParameters.distanceDecay,
+                    [paramName]: value
+                }
+            }
+        })),
+
+    // Reset parameters to defaults
+    resetAlgorithmParameters: () => 
+        set(state => ({
+            algorithmParameters: {
+                ...state.algorithmParameters,
+                weekAllocation: {
+                    minWeeksPerRegion: 1,
+                    maxWeeksPerRegionRatio: 0.5,
+                    lambdaPenalty: {
+                        percentage: true,
+                        range: { min: 0, max: 100 },
+                        scaling: 0.1,
+                        description: state.algorithmParameters.weekAllocation.lambdaPenalty.description
+                    },
+                    penaltyFunction: "quadratic",
+                    description: state.algorithmParameters.weekAllocation.description
+                },
+                distanceDecay: {
+                    strategy: "exponential",
+                    minPenaltyRate: 0.00001,
+                    maxPenaltyRate: 0.01,
+                    scalingFunction: "linear",
+                    description: state.algorithmParameters.distanceDecay.description
+                }
+            }
+        }))
 }));
 
 export default useTravelRecommenderStore;
