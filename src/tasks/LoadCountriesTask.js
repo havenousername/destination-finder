@@ -334,92 +334,82 @@ class LoadCountriesTask {
         );
         return algorithmComparison.compareAlgorithms(mapCountries);
       };
+
+
   greedyRecommendationAlgorithm = (mapCountries, userData, setResults, algorithmParameters) => {
-
+    // Initial sort by total score
     mapCountries.sort((a, b) =>
-      b.properties.result.scores.totalScore - a.properties.result.scores.totalScore
+        b.properties.result.scores.totalScore - a.properties.result.scores.totalScore
     );
-    
 
-    let budget;
+    // Budget calculation
     let numberOfWeeks = Math.round(1 + userData.Weeks / 5);
-    if (userData.Budget === 0) {
-      budget = 225 * numberOfWeeks; // low budget per week is 225
-    } else if (userData.Budget === 50) {
-      budget = 450 * numberOfWeeks; // mid budget per week is 450
-    } else if (userData.Budget === 100) {
-      budget = 900 * numberOfWeeks;  // mid budget per week is 900
-    }
-
-    const minPenaltyRate = algorithmParameters.distanceDecay.minPenaltyRate;   // very small
-    const maxPenaltyRate = algorithmParameters.distanceDecay.maxPenaltyRate;   // a little more than min
-
-    let penaltyRate = minPenaltyRate + (maxPenaltyRate - minPenaltyRate) * (userData.Distance / 100); //linear interpolation
-
-
-    if (userData.isDistanceNotImportant) {
-      penaltyRate = 0;
-    }
+    let budget = userData.Budget === 0 ? 225 * numberOfWeeks :
+                userData.Budget === 50 ? 450 * numberOfWeeks :
+                900 * numberOfWeeks;
 
     let selectedRegions = [];
 
-    // Start by selecting the first region (assuming mapCountries is sorted by totalScore descending)
+    // Select first region
     budget -= mapCountries[0].properties.result.price;
     selectedRegions.push(mapCountries[0]);
 
     while (true) {
-      // Filter candidates: not selected and price fits the remaining budget
-      let candidates = mapCountries
-        .filter(region =>
-          !selectedRegions.includes(region) &&
-          region.properties.result.price <= budget
-        )
-        .map(candidate => {
-          // Calculate penalized score based on distance to all selected regions
-          let score = candidate.properties.result.scores.totalScore;
+        // Filter candidates: not selected and within budget
+        let candidates = mapCountries
+            .filter(region =>
+                !selectedRegions.includes(region) &&
+                region.properties.result.price <= budget
+            )
+            .map(candidate => {
+                // Calculate penalized score using new distance decay functions
+                let score = candidate.properties.result.scores.totalScore;
+                
+                // Create temporary array with current candidate and selected regions
+                const tempRegions = [...selectedRegions, candidate];
+                
+                // Calculate penalty using new function
+                const penaltyFactor = this.calculateMultiRegionPenalty(
+                    tempRegions,
+                    'greedy',
+                    userData,
+                    algorithmParameters
+                );
 
-          for (const selected of selectedRegions) {
-            const dist = haversine(
-              { latitude: selected.geometry.centroid.geometry.coordinates[1], longitude: selected.geometry.centroid.geometry.coordinates[0] },
-              { latitude: candidate.geometry.centroid.geometry.coordinates[1], longitude: candidate.geometry.centroid.geometry.coordinates[0] }
+                score *= penaltyFactor;
+                candidate.properties.result.scores.penalizedScore = score;
+                return candidate;
+            })
+            .sort((a, b) => 
+                b.properties.result.scores.penalizedScore - 
+                a.properties.result.scores.penalizedScore
             );
 
-            const penaltyFactor = Math.exp(-penaltyRate * dist);
-            score *= penaltyFactor;
-          }
+        if (candidates.length === 0) {
+            break;
+        }
 
-          candidate.properties.result.scores.penalizedScore = score;
-          return candidate;
-        })
-        // Sort candidates by penalized score descending
-        .sort((a, b) => b.properties.result.scores.penalizedScore - a.properties.result.scores.penalizedScore);
-
-      if (candidates.length === 0) {
-        // No more candidates fit the budget — stop
-        break;
-      }
-
-      // Pick the best candidate
-      const bestCandidate = candidates[0];
-
-      // Deduct price and add to selectedRegions
-      budget -= bestCandidate.properties.result.price;
-      selectedRegions.push(bestCandidate);
+        // Select best candidate
+        const bestCandidate = candidates[0];
+        budget -= bestCandidate.properties.result.price;
+        selectedRegions.push(bestCandidate);
     }
 
+    // Allocate weeks using ILP
     const allocatedRegions = this.allocateWeeksILP(
-      selectedRegions,
-      numberOfWeeks,
-      Math.ceil(numberOfWeeks * algorithmParameters.weekAllocation.maxWeeksPerRegionRatio), // Use ratio from store
-      userData.weekAllocationDistribution * algorithmParameters.weekAllocation.lambdaPenalty.scaling
+        selectedRegions,
+        numberOfWeeks,
+        Math.ceil(numberOfWeeks * algorithmParameters.weekAllocation.maxWeeksPerRegionRatio),
+        userData.weekAllocationDistribution * algorithmParameters.weekAllocation.lambdaPenalty.scaling
     );
-    setResults(
-      allocatedRegions.map(({ region, weeks }) => ({
-        ...region.properties.result,
-        allocatedWeeks: weeks
-      })))
 
-  }
+    setResults(
+        allocatedRegions.map(({ region, weeks }) => ({
+            ...region.properties.result,
+            allocatedWeeks: weeks
+        }))
+    );
+}
 
 
 
@@ -430,191 +420,165 @@ class LoadCountriesTask {
     algorithmParameters,
     populationSize = 20,
     generations = 200,
-    mutationRate = 0.01  
-  ) => {
-    // Number of weeks user can allocate
-    let numberOfWeeks = Math.round(1 + userData.Weeks / 5);
+    mutationRate = 0.01,
+    tournamentSize = 3
+) => {
+    // Initialize parameters from algorithmParameters
+    populationSize = algorithmParameters.genetic.populationSize;
+    generations = algorithmParameters.genetic.generations;
+    mutationRate = algorithmParameters.genetic.mutationRate;
+    tournamentSize = algorithmParameters.genetic.tournamentSize;
 
-    // Budget per week tier
+    // Budget calculation
+    let numberOfWeeks = Math.round(1 + userData.Weeks / 5);
     let budgetPerWeek = userData.Budget === 0 ? 225 : userData.Budget === 50 ? 450 : 900;
     let totalBudget = budgetPerWeek * numberOfWeeks;
 
-    // Penalty rate for distance importance
-    const minPenaltyRate = algorithmParameters.distanceDecay.minPenaltyRate;   // very small
-    const maxPenaltyRate = algorithmParameters.distanceDecay.maxPenaltyRate;   // a little more than min
-
-    let penaltyRate = userData.isDistanceNotImportant
-      ? 0
-      : minPenaltyRate + (maxPenaltyRate - minPenaltyRate) * (userData.Distance / 100);
-
-
-    // Max number of regions a chromosome can have (set to mapCountries length)
     const maxRegions = mapCountries.length;
 
-    // Utility: Generate initial population with variable chromosome length (1 to maxRegions)
+    // Initialize population (unchanged)
     function initializePopulation() {
-      const population = [];
-      for (let i = 0; i < populationSize; i++) {
-        const chromosome = [];
-        const usedIndices = new Set();
+        const population = [];
+        for (let i = 0; i < populationSize; i++) {
+            const chromosome = [];
+            const usedIndices = new Set();
+            const length = Math.floor(Math.random() * maxRegions) + 1;
 
-        // Random length between 1 and maxRegions (or limit to numberOfWeeks if desired)
-        const length = Math.floor(Math.random() * maxRegions) + 1;
-
-        while (chromosome.length < length) {
-          const index = Math.floor(Math.random() * mapCountries.length);
-          if (!usedIndices.has(index)) {
-            usedIndices.add(index);
-            chromosome.push(mapCountries[index]);
-          }
-        }
-        population.push(chromosome);
-      }
-      return population;
-    }
-
-    // Utility: Compute penalty multiplying distance penalties between all pairs
-    function computePenalty(chromosome) {
-      let penalty = 1.0;
-      for (let i = 0; i < chromosome.length; i++) {
-        for (let j = i + 1; j < chromosome.length; j++) {
-          const dist = haversine(
-            {
-              latitude: chromosome[i].geometry.centroid.geometry.coordinates[1],
-              longitude: chromosome[i].geometry.centroid.geometry.coordinates[0],
-            },
-            {
-              latitude: chromosome[j].geometry.centroid.geometry.coordinates[1],
-              longitude: chromosome[j].geometry.centroid.geometry.coordinates[0],
+            while (chromosome.length < length) {
+                const index = Math.floor(Math.random() * mapCountries.length);
+                if (!usedIndices.has(index)) {
+                    usedIndices.add(index);
+                    chromosome.push(mapCountries[index]);
+                }
             }
-          );
-          penalty *= Math.exp(-penaltyRate * dist);
-
+            population.push(chromosome);
         }
-      }
-      return penalty;
+        return population;
     }
 
+    // Updated penalty computation using new functions
+    function computePenalty(chromosome) {
+        return this.calculateMultiRegionPenalty(
+            chromosome,
+            'genetic',
+            userData,
+            algorithmParameters
+        );
+    }
 
-    // Utility: Fitness score with dynamic chromosome length and budget check
+    // Fitness computation (modified to use new penalty)
     function computeFitness(chromosome) {
-      let totalAttr = 0,
-        budgetScore = 0,
-        travelMonthScore = 0,
-        visitorScore = 0,
-        totalCost = 0;
+        let totalAttr = 0,
+            budgetScore = 0,
+            travelMonthScore = 0,
+            visitorScore = 0,
+            totalCost = 0;
 
-      for (const region of chromosome) {
-        const scores = region.properties.result.scores;
-        totalAttr += (scores.totalAttrScore.score) / (scores.totalAttrScore.weight) || 0;
-        budgetScore += scores.budgetScore || 0;
-        travelMonthScore += scores.travelMonthScore || 0;
-        visitorScore += scores.visitorScore || 0;
-        totalCost += region.properties.result.price || 0;
-      }
+        for (const region of chromosome) {
+            const scores = region.properties.result.scores;
+            totalAttr += (scores.totalAttrScore.score) / (scores.totalAttrScore.weight) || 0;
+            budgetScore += scores.budgetScore || 0;
+            travelMonthScore += scores.travelMonthScore || 0;
+            visitorScore += scores.visitorScore || 0;
+            totalCost += region.properties.result.price || 0;
+        }
 
-      if (totalCost > totalBudget) return -Infinity; // reject chromosomes over budget
+        if (totalCost > totalBudget) return -Infinity;
 
-      const penalty = computePenalty(chromosome);
-      return (totalAttr + budgetScore + travelMonthScore + visitorScore) * penalty;
+        const penalty = computePenalty.call(this, chromosome);
+        return (totalAttr + budgetScore + travelMonthScore + visitorScore) * penalty;
     }
 
-    // Tournament selection same as before
+    // Tournament selection (unchanged)
     function tournamentSelection(population, fitnesses) {
-      const candidates = [];
-      const tournamentSize = 3;
-      for (let i = 0; i < tournamentSize; i++) {
-        const idx = Math.floor(Math.random() * population.length);
-        candidates.push({ chromosome: population[idx], fitness: fitnesses[idx] });
-      }
-      candidates.sort((a, b) => b.fitness - a.fitness);
-      return candidates[0].chromosome;
+        const candidates = [];
+        const tournamentSize = algorithmParameters.genetic.tournamentSize;
+        for (let i = 0; i < tournamentSize; i++) {
+            const idx = Math.floor(Math.random() * population.length);
+            candidates.push({ chromosome: population[idx], fitness: fitnesses[idx] });
+        }
+        candidates.sort((a, b) => b.fitness - a.fitness);
+        return candidates[0].chromosome;
     }
 
-    // Uniform crossover that merges parents genes without duplicates
+    // Crossover (unchanged)
     function crossover(parent1, parent2) {
-      const child = [];
-      const usedNames = new Set();
+        const child = [];
+        const usedNames = new Set();
 
-      // Combine genes from both parents (in random order)
-      const combined = [...parent1, ...parent2].filter(
-        (region, idx, self) =>
-          !usedNames.has(region.properties.name) && (usedNames.add(region.properties.name) || true)
-      );
+        const combined = [...parent1, ...parent2].filter(
+            (region, idx, self) =>
+                !usedNames.has(region.properties.name) && (usedNames.add(region.properties.name) || true)
+        );
 
-      // Randomly decide chromosome length between 1 and combined length
-      const length = Math.floor(Math.random() * combined.length) + 1;
+        const length = Math.floor(Math.random() * combined.length) + 1;
+        for (let i = 0; i < length; i++) {
+            child.push(combined[i]);
+        }
 
-      for (let i = 0; i < length; i++) {
-        child.push(combined[i]);
-      }
-
-      return child;
+        return child;
     }
 
-    // Mutation: with chance, replace one gene with a new random one (avoid duplicates)
+    // Mutation (unchanged)
     function mutate(chromosome) {
-      if (Math.random() < mutationRate && chromosome.length > 0) {
-        const idxToReplace = Math.floor(Math.random() * chromosome.length);
-        let replacement;
-        const existingNames = new Set(chromosome.map(r => r.properties.name));
+        if (Math.random() < mutationRate && chromosome.length > 0) {
+            const idxToReplace = Math.floor(Math.random() * chromosome.length);
+            let replacement;
+            const existingNames = new Set(chromosome.map(r => r.properties.name));
 
-        do {
-          replacement = mapCountries[Math.floor(Math.random() * mapCountries.length)];
-        } while (existingNames.has(replacement.properties.name));
+            do {
+                replacement = mapCountries[Math.floor(Math.random() * mapCountries.length)];
+            } while (existingNames.has(replacement.properties.name));
 
-        chromosome[idxToReplace] = replacement;
-      }
-      return chromosome;
+            chromosome[idxToReplace] = replacement;
+        }
+        return chromosome;
     }
 
-    // === Main GA Loop ===
+    // Main GA Loop
     let population = initializePopulation();
 
     for (let gen = 0; gen < generations; gen++) {
-      const fitnesses = population.map(computeFitness);
+        const fitnesses = population.map(chr => computeFitness.call(this, chr));
+        const newPopulation = [];
 
-      const newPopulation = [];
+        // Elitism
+        const eliteIndex = fitnesses.indexOf(Math.max(...fitnesses));
+        newPopulation.push(population[eliteIndex]);
 
-      // Elitism: carry over best chromosome
-      const eliteIndex = fitnesses.indexOf(Math.max(...fitnesses));
-      newPopulation.push(population[eliteIndex]);
+        while (newPopulation.length < populationSize) {
+            const parent1 = tournamentSelection(population, fitnesses);
+            const parent2 = tournamentSelection(population, fitnesses);
+            let child = crossover(parent1, parent2);
+            child = mutate(child);
+            newPopulation.push(child);
+        }
 
-      // Fill the rest of the population
-      while (newPopulation.length < populationSize) {
-        const parent1 = tournamentSelection(population, fitnesses);
-        const parent2 = tournamentSelection(population, fitnesses);
-        let child = crossover(parent1, parent2);
-        child = mutate(child);
-        newPopulation.push(child);
-      }
-
-      population = newPopulation;
+        population = newPopulation;
     }
 
-    // Final best chromosome
-    const finalFitnesses = population.map(computeFitness);
+    // Final selection and allocation
+    const finalFitnesses = population.map(chr => computeFitness.call(this, chr));
     const bestIndex = finalFitnesses.indexOf(Math.max(...finalFitnesses));
     const bestChromosome = population[bestIndex];
 
-    // Allocate weeks with the existing ILP function
+    // Week allocation
     const allocatedRegions = this.allocateWeeksILP(
-      bestChromosome,
-      numberOfWeeks,
-      Math.ceil(numberOfWeeks * algorithmParameters.weekAllocation.maxWeeksPerRegionRatio), // Use ratio from store
-      userData.weekAllocationDistribution * algorithmParameters.weekAllocation.lambdaPenalty.scaling
+        bestChromosome,
+        numberOfWeeks,
+        Math.ceil(numberOfWeeks * algorithmParameters.weekAllocation.maxWeeksPerRegionRatio),
+        userData.weekAllocationDistribution * algorithmParameters.weekAllocation.lambdaPenalty.scaling
     );
-    setResults(
-      allocatedRegions.map(({ region, weeks }) => ({
-        ...region.properties.result,
-        allocatedWeeks: weeks,
-      }))
-    );
-  };
 
+    setResults(
+        allocatedRegions.map(({ region, weeks }) => ({
+            ...region.properties.result,
+            allocatedWeeks: weeks,
+        }))
+    );
+};
 
   
-  // Main function: Dynamic Programming Region Recommendation with Per-Attribute Distance Penalty
   
   dynamicDPDominanceRecommendation = (mapCountries, userData, setResults, algorithmParameters) => {
     // ---- Helper: Attribute Score Accessor (for weighted/unweighted attribute objects) ----
@@ -707,8 +671,8 @@ class LoadCountriesTask {
     }
   
     // Penalty rate setup
-    const minPenaltyRate = algorithmParameters.distanceDecay.minPenaltyRate;   // very small
-    const maxPenaltyRate = algorithmParameters.distanceDecay.maxPenaltyRate;   // a little more than min
+    const minPenaltyRate = algorithmParameters.distanceDecay.penalties.dynamic.minPenaltyRate;   // very small
+    const maxPenaltyRate = algorithmParameters.distanceDecay.penalties.dynamic.maxPenaltyRate;   // a little more than min
 
     let penaltyRate = minPenaltyRate + (maxPenaltyRate - minPenaltyRate) * Math.pow(userData.Distance / 10, 2);
     
@@ -736,39 +700,34 @@ class LoadCountriesTask {
   
     while (true) {
       // Remove strictly dominated regions
-      let dominated = strictlyDominatedRegions(availableRegions, attributes);
-      let filteredRegions = availableRegions.filter((_, idx) => !dominated.has(idx));
-      if (filteredRegions.length === 0) break;
-  
-      // Affordable only
-      let affordable = filteredRegions.filter(r => r.properties.result.price <= currentBudget);
-      if (affordable.length === 0) break;
-  
-      // ---- Penalty application: apply to EACH ATTRIBUTE ----
-      affordable.forEach(candidate => {
-        // Compute total penalty factor based on all selected regions
-        let totalPenalty = 1.0;
-        for (const selected of selectedRegions) {
-          const candidateCoord = {
-            latitude: candidate.geometry.centroid.geometry.coordinates[1],
-            longitude: candidate.geometry.centroid.geometry.coordinates[0]
-          };
-          const selectedCoord = {
-            latitude: selected.geometry.centroid.geometry.coordinates[1],
-            longitude: selected.geometry.centroid.geometry.coordinates[0]
-          };
-          const dist = haversine(selectedCoord, candidateCoord);
-          totalPenalty *= Math.exp(-penaltyRate * dist);
-          
-        }
-        // For each attribute, apply penalty
-        for (const attr of attributes) {
-          let originalScore = candidate.properties.result.scores[attr];
-          if (typeof originalScore !== 'number') continue;
-          candidate.properties.result.scores[attr] = originalScore * totalPenalty;
-          // console.log(originalScore * totalPenalty)
-        }
-      });
+    let dominated = strictlyDominatedRegions(availableRegions, attributes);
+    let filteredRegions = availableRegions.filter((_, idx) => !dominated.has(idx));
+    if (filteredRegions.length === 0) break;
+
+    // Affordable only
+    let affordable = filteredRegions.filter(r => r.properties.result.price <= currentBudget);
+    if (affordable.length === 0) break;
+
+    // ---- Modified Penalty Application using new functions ----
+    affordable.forEach(candidate => {
+      // Create temporary array with current candidate and selected regions
+      const tempRegions = [...selectedRegions, candidate];
+      
+      // Calculate multi-region penalty using the new functions
+      const totalPenalty = this.calculateMultiRegionPenalty(
+        tempRegions,
+        'dynamic', // algorithm type
+        userData,
+        algorithmParameters
+      );
+
+      // Apply penalty to each attribute
+      for (const attr of attributes) {
+        let originalScore = candidate.properties.result.scores[attr];
+        if (typeof originalScore !== 'number') continue;
+        candidate.properties.result.scores[attr] = originalScore * totalPenalty;
+      }
+    });
   
       // ---- Custom Dominance: compute composite score if enough candidates ----
       let candidates;
@@ -807,6 +766,70 @@ class LoadCountriesTask {
       }))
     );
   }
+
+
+  calculateDistanceDecay = (distance, algorithmType, userData, algorithmParameters) => {
+    const { strategy, scalingFunction, penalties } = algorithmParameters.distanceDecay;
+    const { minPenaltyRate, maxPenaltyRate } = penalties[algorithmType];
+
+    // If distance is not important, return no penalty
+    if (userData.isDistanceNotImportant) {
+        return 0;
+    }
+
+    // Calculate scaled distance importance based on scalingFunction
+    let scaledDistance;
+    switch(scalingFunction) {
+        case "quadratic":
+            scaledDistance = Math.pow(userData.Distance / 100, 2);
+            break;
+        case "linear":
+            scaledDistance = userData.Distance / 100;
+            break;
+        default:
+            scaledDistance = userData.Distance / 100;
+    }
+
+    // Calculate base penalty rate
+    const penaltyRate = minPenaltyRate + 
+        (maxPenaltyRate - minPenaltyRate) * scaledDistance;
+
+    // Apply decay strategy
+    switch(strategy) {
+        case "exponential":
+            return Math.exp(-penaltyRate * distance);
+        case "linear":
+            return Math.max(0, 1 - penaltyRate * distance);
+        case "quadratic":
+            return Math.max(0, 1 - penaltyRate * distance * distance);
+        default:
+            return Math.exp(-penaltyRate * distance);
+    }
+};
+
+calculateMultiRegionPenalty = (regions, algorithmType, userData, algorithmParameters) => {
+    let totalPenalty = 1.0;
+    
+    for (let i = 0; i < regions.length; i++) {
+        for (let j = i + 1; j < regions.length; j++) {
+            const dist = haversine(
+                {
+                    latitude: regions[i].geometry.centroid.geometry.coordinates[1],
+                    longitude: regions[i].geometry.centroid.geometry.coordinates[0],
+                },
+                {
+                    latitude: regions[j].geometry.centroid.geometry.coordinates[1],
+                    longitude: regions[j].geometry.centroid.geometry.coordinates[0],
+                }
+            );
+            
+            const penalty = this.calculateDistanceDecay(dist, algorithmType, userData, algorithmParameters);
+            totalPenalty *= penalty;
+        }
+    }
+    
+    return totalPenalty;
+};
 
   allocateWeeksILP = (regions, totalWeeks, maxWeeksPerRegion, lambdaPenalty, penaltyFunction) => {
     const model = {
@@ -878,6 +901,8 @@ class LoadCountriesTask {
 
     return allocation;
 };
+
+
 
 
 }

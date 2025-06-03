@@ -93,14 +93,28 @@ const useTravelRecommenderStore = create((set) => ({
 
         distanceDecay: {
             strategy: "exponential",
-            minPenaltyRate: 0.00001,
-            maxPenaltyRate: 0.01,
             scalingFunction: "linear",
+            penalties: {
+                genetic: {
+                    minPenaltyRate: 0.00001,
+                    maxPenaltyRate: 0.00004,
+                    description: "Lower penalties due to multiplicative accumulation in genetic algorithm"
+                },
+                greedy: {
+                    minPenaltyRate: 0.00001,
+                    maxPenaltyRate: 0.01,
+                    description: "Higher penalties as they're applied individually in greedy algorithm"
+                },
+                dynamic: {
+                    minPenaltyRate: 0,
+                    maxPenaltyRate: 0.000055,
+                    description: "Moderate penalties for balanced approach in dynamic algorithm"
+                }
+            },
             description: {
                 strategy: "Method used to decay distance penalties (exponential/linear/quadratic)",
-                minPenaltyRate: "Minimum penalty rate for distance calculations",
-                maxPenaltyRate: "Maximum penalty rate for distance calculations",
-                scalingFunction: "How user distance preference is scaled"
+                scalingFunction: "How user distance preference is scaled",
+                penalties: "Algorithm-specific penalty ranges for distance calculations"
             }
         },
 
@@ -116,15 +130,10 @@ const useTravelRecommenderStore = create((set) => ({
                 mutationRate: "Probability of mutation occurring",
                 tournamentSize: "Number of candidates in tournament selection"
             }
-
-            // const minPenaltyRate = 0.00001;   // very small
-            // const maxPenaltyRate = 0.00004;   // a little more than min
         },
 
         greedy: {
         // No additional parameters needed
-        // const minPenaltyRate = 0.00001;   // Light penalty when distance importance is low
-        // const maxPenaltyRate = 0.01;     // Much stronger penalty when distance importance is high
         },
 
         dynamic: {
@@ -139,8 +148,6 @@ const useTravelRecommenderStore = create((set) => ({
                     normalization: "Method used to normalize scores"
                 }
             }
-            // const minPenaltyRate = 0;   // very small
-            // const maxPenaltyRate = 0.000055;   // a little more than min
         }
     },
 
