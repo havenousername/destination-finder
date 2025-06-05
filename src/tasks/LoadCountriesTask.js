@@ -4,6 +4,9 @@ import { getShortMonths } from "../helpers/months";
 import * as turf from '@turf/turf';
 import haversine from 'haversine';
 import { AlgorithmComparison } from './AlgorithmComparison';
+import { HyperparameterTuning } from './HyperParameterTuning';
+import testScenariosMultiComposite from "../data/testScenariosMultiComposite.json";
+
 // import solver from 'javascript-lp-solver';
 
 
@@ -309,7 +312,7 @@ class LoadCountriesTask {
       this.singleRecommendationAlgorithm(results, setResults)
     }
     else if (type === "composite") {
-      // console.log(this.runAlgorithmComparison(mapCountries))
+      console.log(this.optimizeAndEvaluate(mapCountries))
       if (algorithmUsed === "genetic") {
         this.geneticRecommendationAlgorithm(mapCountries, userData, setResults, algorithmParameters)
       }
@@ -321,20 +324,76 @@ class LoadCountriesTask {
       }
     }
   }
+
+
+
+saveToJSON = (data, filename) => {
+    const jsonString = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
+
+optimizeAndEvaluate = (mapCountries) => {
+  console.log("Starting optimization...");
+  
+  const tuner = new HyperparameterTuning(
+      this.greedyRecommendationAlgorithm,
+      this.geneticRecommendationAlgorithm,
+      this.dynamicDPDominanceRecommendation
+  );
+
+  const tuningResults = tuner.findBestParameters(mapCountries);
+  const tuningReport = tuner.generateTuningReport(tuningResults);
+  
+  const comparison = new AlgorithmComparison(
+      (countries, scenarios, setResults, algorithmParameters) => 
+          this.greedyRecommendationAlgorithm(countries, scenarios, setResults, algorithmParameters),
+      (countries, scenarios, setResults, algorithmParameters) => 
+          this.geneticRecommendationAlgorithm(countries, scenarios, setResults, algorithmParameters),
+      (countries, scenarios, setResults, algorithmParameters) => 
+          this.dynamicDPDominanceRecommendation(countries, scenarios, setResults, algorithmParameters)
+  );
+
+  const comparisonResults = comparison.compareAlgorithms(
+      mapCountries, 
+      tuningResults.bestParameters.Genetic,
+      tuningResults.bestParameters.Greedy, 
+      tuningResults.bestParameters.Dynamic
+  );
+  
+  const evaluationResults = {
+      metadata: {
+          timestamp: new Date().toISOString(),
+          numberOfScenarios: testScenariosMultiComposite.scenarios.length,
+          datasetSize: mapCountries.length
+      },
+      hyperparameterTuning: {
+          bestParameters: tuningResults.bestParameters,
+          parameterSensitivity: tuningReport.parameterSensitivity,
+          statisticalSummary: tuningReport.statisticalSummary
+      },
+      algorithmComparison: comparisonResults
+  };
+   
+  // Save to file
+  // this.saveToJSON(evaluationResults, 'evaluationResults.json');
+  
+  return evaluationResults;
+}
+
   singleRecommendationAlgorithm = (results, setResults) => {
     results.sort((a, b) => b.scores.totalScore - a.scores.totalScore);
     results = this.allResults.filter((a) => a.scores.totalScore > 0);
     setResults(results.slice(0, 10));
   }
-  runAlgorithmComparison = (mapCountries) => {
-        const algorithmComparison = new AlgorithmComparison(
-          this.greedyRecommendationAlgorithm,
-          this.geneticRecommendationAlgorithm,
-          this.dynamicDPDominanceRecommendation
-        );
-        return algorithmComparison.compareAlgorithms(mapCountries);
-      };
-
+ 
 
   greedyRecommendationAlgorithm = (mapCountries, userData, setResults, algorithmParameters) => {
     // Initial sort by total score
