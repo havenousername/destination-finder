@@ -34,6 +34,7 @@ class LoadCountriesTask {
       const scoreCountry = countryScores.find(
         (c) => c.u_name === mapCountry.properties.u_name
       );
+      scoreCountry.geometry = mapCountry.geometry
       if (scoreCountry != null) {
         this.allPrices.push(scoreCountry.costPerWeek);
         this.scoreCountries.push(scoreCountry);
@@ -65,6 +66,7 @@ class LoadCountriesTask {
         region: scoreCountry.Region,
         uname: scoreCountry.u_name,
         price: scoreCountry.costPerWeek,
+        geometry: scoreCountry.geometry,
         budgetLevel: scoreCountry.budgetLevel,
         qualifications: {
           nature: this.calculateRecursiveScore(scoreCountry, countryScores, "nature"),
@@ -383,7 +385,7 @@ optimizeAndEvaluate = (mapCountries) => {
   };
    
   // Save to file
-  // this.saveToJSON(evaluationResults, 'evaluationResults.json');
+  this.saveToJSON(evaluationResults, 'evaluationResults.json');
   
   return evaluationResults;
 }

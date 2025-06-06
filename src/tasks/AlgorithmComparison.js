@@ -80,12 +80,12 @@ export class AlgorithmComparison {
                 // console.log(curr)
                 // Get coordinates from the correct location in the object structure
                 const currCoords = {
-                    latitude: curr.latitude || curr.geometry?.centroid?.geometry?.coordinates[1],
-                    longitude: curr.longitude || curr.geometry?.centroid?.geometry?.coordinates[0]
+                    latitude: curr.geometry?.centroid?.geometry?.coordinates[1],
+                    longitude: curr.geometry?.centroid?.geometry?.coordinates[0]
                 };
                 const nextCoords = {
-                    latitude: next.latitude || next.geometry?.centroid?.geometry?.coordinates[1],
-                    longitude: next.longitude || next.geometry?.centroid?.geometry?.coordinates[0]
+                    latitude:  next.geometry?.centroid?.geometry?.coordinates[1],
+                    longitude: next.geometry?.centroid?.geometry?.coordinates[0]
                 };
 
                 const distance = haversine(currCoords, nextCoords);
@@ -94,8 +94,8 @@ export class AlgorithmComparison {
 
             // Calculate geographical diversity
             const getCoords = (r) => ({
-                lat: r.latitude || r.geometry?.centroid?.geometry?.coordinates[1],
-                long: r.longitude || r.geometry?.centroid?.geometry?.coordinates[0]
+                lat:  r.geometry?.centroid?.geometry?.coordinates[1],
+                long: r.geometry?.centroid?.geometry?.coordinates[0]
             });
 
             const coords = algorithmResults.map(getCoords);
