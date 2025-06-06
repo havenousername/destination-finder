@@ -314,7 +314,7 @@ class LoadCountriesTask {
       this.singleRecommendationAlgorithm(results, setResults)
     }
     else if (type === "composite") {
-      console.log(this.optimizeAndEvaluate(mapCountries))
+      // console.log(this.optimizeAndEvaluate(mapCountries))
       if (algorithmUsed === "genetic") {
         this.geneticRecommendationAlgorithm(mapCountries, userData, setResults, algorithmParameters)
       }
