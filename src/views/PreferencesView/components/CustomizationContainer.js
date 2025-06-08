@@ -3,8 +3,10 @@ import Attribute from "./Attribute";
 import useTravelRecommenderStore from "../../../store/travelRecommenderStore";
 import * as myConstant from "../../../data/constantData";
 import {GREY_COLOR} from "../../../data/constantData";
+import RateOptions from "../../../components/RateOptions";
 export const CustomizationContainer = () => {
   const { userData } = useTravelRecommenderStore();
+  const isRdfVersion = useTravelRecommenderStore(state => state.isRdfVersion());
   return (
     <div>
       <p style={{ textAlign: "start", fontSize: "small" }}>
@@ -17,18 +19,31 @@ export const CustomizationContainer = () => {
             : myConstant.COLORS[index % myConstant.COLORS.length];
           return (
             <div
-              style={{
+              style={
+              isRdfVersion ? {
+                padding: '0.5rem 0.5rem'
+              } : {
                 border:"1px solid var(--border-color)",
                 borderRadius: "1rem",
                 padding: '0.875rem 1rem'
               }}
               key={index}
             >
-              <Attribute
-                key={index}
-                sliderColor={sliderColor}
-                attrName={item}
-              />
+              { !isRdfVersion && (
+                <Attribute
+                  key={index}
+                  sliderColor={sliderColor}
+                  attrName={item}
+                />
+              ) }
+              {
+               isRdfVersion && (
+                 <RateOptions
+                   key={index}
+                   sliderColor={sliderColor}
+                   attrName={item} />
+                )
+              }
             </div>
           )
         })}

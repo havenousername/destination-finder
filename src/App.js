@@ -6,17 +6,32 @@ import Loading from "./views/GeneralView/Loading";
 import useTravelRecommenderStore from "./store/travelRecommenderStore";
 import AppRoutes from "./Routes";
 import {useAuthContext} from "./context/AuthContext";
-import {useFavourites} from "./hooks/useFavourites";
-import * as turf from '@turf/turf';
 import {useLoadFavourites} from "./hooks/useLoadFavourites";
+import * as turf from '@turf/turf';
+import useRegions from "./api/rdf/useRegions";
 
 const App = () => {
   const [fileRetrieved, setFileRetrieved] = useState([]);
-  const { countries, setCountries, setResults, userData, recommendationType, algorithmUsed, refresh} = useTravelRecommenderStore();
+  const {
+    countries,
+    setCountries,
+    setResults,
+    userData,
+    recommendationType,
+    algorithmUsed,
+    refresh,
+    version,
+  } = useTravelRecommenderStore();
+  const isRdfVersion = useTravelRecommenderStore(state => state.isRdfVersion());
+  const hierarchicalRegions = useRegions();
+
+
   const load = () => {
     const loadCountriesTask = new LoadCountriesTask();
     loadCountriesTask.load(setFileRetrieved);
   };
+
+
   const calculateScores = () => {
     if (fileRetrieved?.length > 0) {
       const loadCountriesTask = new LoadCountriesTask();
@@ -32,10 +47,12 @@ const App = () => {
   };
 
   useEffect(load, []);
-  useEffect(calculateScores, [userData, fileRetrieved, setCountries, setResults, recommendationType, algorithmUsed, refresh]);
+  useEffect(() => {
+      calculateScores();
+  }, [userData, fileRetrieved, setCountries, setResults, recommendationType, algorithmUsed, refresh, isRdfVersion]);
 
   const auth = useAuthContext();
-  const { fetch } = useFavourites();
+  const { fetch } = useLoadFavourites();
 
   useEffect(() => {
     if (auth.user?.id) {
@@ -47,7 +64,7 @@ const App = () => {
 
   return (
     <div style={{ height: "100vh" }}>
-        {countries.length === 0 ? (
+        {countries.length === 0 && !isRdfVersion ? (
           <Loading />
         ) : (
           <AppRoutes/>

@@ -125,14 +125,22 @@
 
 /* buttons */
 
+.btn {
+    --bs-btn-bg: rgba(255, 255, 255, 0.8);
+    background-color: var(--bs-btn-bg);
+    font-weight: bold;
+}
+
 .btn:hover {
-    color: var(--bs-btn-active-color);
+    --bs-btn-active-bg: rgba(255, 255, 255, 1);
+    color: #0B1C22;
     background-color: var(--bs-btn-active-bg);
     border-color: var(--bs-btn-active-border-color);
     transition: color .15s ease-in-out, background-color .15s ease-in-out, border-color .15s ease-in-out, box-shadow .15s ease-in-out;
 }
 
 .btn-primary {
+    --bs-btn-active-bg: rgba(255, 255, 255, 0.8);
     --bs-btn-bg: rgba(255, 255, 255, 0.95);
     --bs-btn-hover-bg: white;
     --bs-btn-border-color: transparent;

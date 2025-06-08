@@ -1,7 +1,8 @@
 import { create } from 'zustand'
 
-const useTravelRecommenderStore = create((set) => ({
+const useTravelRecommenderStore = create((set, getState) => ({
     countries: [],
+    version: 'v2',
     userData: {
         isPriceImportant: false,
         Budget: 50,
@@ -32,39 +33,43 @@ const useTravelRecommenderStore = create((set) => ({
         Attributes: {
             Nature: {
                 weight: 1,
-                score: 50,
+                score: 0,
             },
             Architecture: {
                 weight: 1,
-                score: 50,
+                score: 0,
             },
             Hiking: {
                 weight: 1,
-                score: 50,
+                score: 0,
             },
             Wintersports: {
                 weight: 1,
-                score: 50,
+                score: 0,
+            },
+            Watersports: {
+                weight: 1,
+                score: 0,
             },
             Beach: {
                 weight: 1,
-                score: 50,
+                score: 0,
             },
             Culture: {
                 weight: 1,
-                score: 50,
+                score: 0,
             },
             Culinary: {
                 weight: 1,
-                score: 50,
+                score: 0,
             },
             Entertainment: {
                 weight: 1,
-                score: 50,
+                score: 0,
             },
             Shopping: {
                 weight: 1,
-                score: 50,
+                score: 0,
             },
         },
     },
@@ -80,6 +85,14 @@ const useTravelRecommenderStore = create((set) => ({
         set({ userData: newUserData })
     },
     setResults: (newResults) => set({ results: newResults }),
+    setVersion: (version) => {
+        if (version === 'v1') {
+            return set({ version })
+        } else {
+            return set({ version: 'v2', refresh: true, results: [], countries: [] })
+        }
+    },
+    isRdfVersion: () =>  getState().version === 'v2',
 }));
 
 export default useTravelRecommenderStore;

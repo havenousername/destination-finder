@@ -11,12 +11,16 @@ import { faAngleLeft, faAngleRight } from '@fortawesome/free-solid-svg-icons'
 import PersonalInformation from "../Personalnformation/PersonalInformation";
 import AppModal from "../../components/AppModal";
 import {useAuthContext} from "../../context/AuthContext";
+import useTravelRecommenderStore from "../../store/travelRecommenderStore";
+import HierarchicalPreferences from "../PreferencesView/HierarchicalPreferences";
 
 const TravelRecommender = () => {
   const [activeResult, setActiveResult] = useState(0);
   const [leftColumnOpen, setLeftColumnOpen] = useState(true);
   const [rightColumnOpen, setRightColumnOpen] = useState(true);
   const { user } = useAuthContext();
+
+  const isNewMode = useTravelRecommenderStore((state) => state.isRdfVersion());
 
   /**
    *
@@ -61,7 +65,8 @@ const TravelRecommender = () => {
             style={{ height: "100%" }}
             {...leftColumnSizes}
           >
-            <Preferences />
+            {!isNewMode && <Preferences/>}
+            {isNewMode && <HierarchicalPreferences />}
           </Col>
         )}
         <Col
