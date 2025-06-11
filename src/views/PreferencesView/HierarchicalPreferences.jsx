@@ -159,19 +159,12 @@ const HierarchicalPreferences = () => {
           </div>
         </div>
         <span className="mt-4">
-          Select your user profile
+          Select your user preferences
         </span>
         <CustomizationContainer/>
         <div className="d-flex justify-content-center w-100">
           <button
-            style={{
-              fontSize: '12px',
-              borderRadius: '5px',
-              padding: '0.7rem 2.2rem',
-              backgroundColor: '#336273',
-              color: 'white',
-            }}
-            className='btn mt-4'
+            className='btn mt-4 button-submit'
             onClick={makeNewRecommendationRequest}
           >
             { loading ? 'Loading...' :

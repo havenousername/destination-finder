@@ -6,10 +6,11 @@ const Button = ({handleButton, children, className = ''}) => {
         style={{
           cursor: "pointer",
           position: "relative",
-          color: "black",
+          color: "white",
           height: "2.3rem",
           minWidth: "11.5rem",
-          background: "white",
+          background: "#193D4A",
+          border: "1px solid #336273" ,
           borderRadius: "0.8rem",
           marginRight: "1rem"
       }}>

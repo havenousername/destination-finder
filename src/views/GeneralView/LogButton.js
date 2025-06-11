@@ -73,7 +73,10 @@ const LoginButton = () => {
       <div
         className={`w-100 d-flex justify-content-between align-items-center ${orderElements} gap-2`}
       >
-          <Button className={'d-flex align-items-center gap-3'} handleButton={handleCTAButton}>
+          <Button
+            className={'d-flex align-items-center gap-3'}
+            handleButton={handleCTAButton}
+          >
               <div className='rounded-circle'
                    style={{backgroundColor: showProfilePhoto ? "transparent" : '#D9D9D9', width: '1.5rem'}}>
                   {
@@ -87,17 +90,22 @@ const LoginButton = () => {
               </div>
               <span className={'fw-bold'} style={{userSelect: "none", fontSize: '12px'}}>{logName}</span>
           </Button>
-          <button
-            style={{fontSize: '12px', color: 'white', whiteSpace: 'nowrap'}}
-            className='me-3 btn btn-dark'
-            onClick={switchVersion}
-          >
-              {isRdfVersion ? 'Switch to default' : 'Switch to hierarchical view'}
-          </button>
+          {/*<button*/}
+          {/*  style={{fontSize: '12px', color: 'white', whiteSpace: 'nowrap'}}*/}
+          {/*  className='me-3 btn btn-dark'*/}
+          {/*  onClick={switchVersion}*/}
+          {/*>*/}
+          {/*    {isRdfVersion ? 'Switch to default' : 'Switch to hierarchical view'}*/}
+          {/*</button>*/}
           {user && (
             <button
-              style={{fontSize: '12px', color: 'white', whiteSpace: 'nowrap'}}
-              className='me-3 btn'
+              style={{
+                  fontSize: '12px',
+                  color: 'white',
+                  whiteSpace: 'nowrap',
+                  background: 'rgb(11, 28, 34)',
+            }}
+              className='btn px-4 d-flex justify-content-center'
               onClick={handleLogout}
             >
                 Log out
