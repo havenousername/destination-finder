@@ -8,7 +8,7 @@ export const CustomizationContainer = () => {
   const { userData } = useTravelRecommenderStore();
   const isRdfVersion = useTravelRecommenderStore(state => state.isRdfVersion());
   return (
-    <div>
+    <div className='w-100'>
       <p style={{ textAlign: "start", fontSize: "small" }}>
         Rate the topics according to their importance to you
       </p>

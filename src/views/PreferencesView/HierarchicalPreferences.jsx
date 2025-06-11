@@ -19,7 +19,8 @@ const HierarchicalPreferences = () => {
     setChosenRegion,
     setTileMaps,
     selectedScope,
-    setSelectedScope
+    setSelectedScope,
+    recommendations
   } = useRegionStore();
 
   const {response: lightRegionResponse, fetchLightRegionByType} = useSimplifiedRegions();
@@ -88,6 +89,13 @@ const HierarchicalPreferences = () => {
   }, [jsonMap])
 
   const { generateGreaterThanRecommendation } = useRecommendation();
+  const [loading, setLoading] = useState(false);
+
+  const makeNewRecommendationRequest = async () => {
+    setLoading(true);
+    await generateGreaterThanRecommendation();
+    setLoading(false);
+  }
 
   return (
     <div style={{height: "100%", overflowY: "auto", overflowX: "hidden", padding: "1rem"}}>
@@ -96,58 +104,59 @@ const HierarchicalPreferences = () => {
         <span style={{fontWeight: "300", fontSize: "0.8rem"}}>Travel Destination Recommender System</span>
       </div>
 
-
-      <div className="d-flex flex-column align-items-start mt-3">
-        <div className="d-flex flex-column align-items-start mb-3 gap-1">
-          <span style={{fontSize: '0.9rem'}}>Select search area</span>
-          <DropdownButton id="dropdown-search-area" title={fromRegionType?.value ?? 'Select element'}>
-            {regionTypes.toArrayList().map((region) =>
-              <Dropdown.Item
-                key={region.value}
-                style={{
-                  minWidth: "12rem",
-                  width: "100%",
-                }}
-                onClick={() => setFromRegionType(region)}
-                as="button">
-                {region.value}
-              </Dropdown.Item>)}
-          </DropdownButton>
-        </div>
-        <div className="d-flex flex-column align-items-start">
-          <span style={{fontSize: '0.9rem'}}>Search region in <strong
-            style={{fontWeight: 'bold'}}>{fromRegionType?.value ?? 'None'}</strong></span>
-          <DropdownButton id="dropdown-search-area" title={selectedRegion.name || 'Select element'}>
-            <SearchDropdownMenu id="dropdown-search-region">
-              {availableRegionsOfType.map((region) =>
+      <div className='d-flex flex-column align-items-start' >
+        <div className="d-flex flex-column align-items-start mt-3">
+          <div className="d-flex flex-column align-items-start mb-3 gap-1">
+            <span style={{fontSize: '0.9rem'}}>Select search area</span>
+            <DropdownButton id="dropdown-search-area" title={fromRegionType?.value ?? 'Select element'}>
+              {regionTypes.toArrayList().map((region) =>
                 <Dropdown.Item
-                  key={region.value1}
-                  onClick={() => setSelectedRegion({name: region.value1, uri: region.value0})}
+                  key={region.value}
                   style={{
                     minWidth: "12rem",
                     width: "100%",
                   }}
+                  onClick={() => setFromRegionType(region)}
                   as="button">
-                  {region.value1}
+                  {region.value}
                 </Dropdown.Item>)}
-            </SearchDropdownMenu>
-          </DropdownButton>
-        </div>
-        <div className="d-flex flex-column align-items-start my-3 gap-1">
-          <span style={{fontSize: '0.9rem'}}>Select search scope</span>
-          <DropdownButton id="dropdown-search-area" title={selectedScope?.value ?? 'Select element'}>
-            {scopedRegionTypes.toArrayList().map((region) =>
-              <Dropdown.Item
-                key={region.value}
-                style={{
-                  minWidth: "12rem",
-                  width: "100%",
-                }}
-                onClick={() => setSelectedScope(region)}
-                as="button">
-                {region.value}
-              </Dropdown.Item>)}
-          </DropdownButton>
+            </DropdownButton>
+          </div>
+          <div className="d-flex flex-column align-items-start">
+          <span style={{fontSize: '0.9rem'}}>Search region in <strong
+            style={{fontWeight: 'bold'}}>{fromRegionType?.value ?? 'None'}</strong></span>
+            <DropdownButton id="dropdown-search-area" title={selectedRegion.name || 'Select element'}>
+              <SearchDropdownMenu id="dropdown-search-region">
+                {availableRegionsOfType.map((region) =>
+                  <Dropdown.Item
+                    key={region.value1}
+                    onClick={() => setSelectedRegion({name: region.value1, uri: region.value0})}
+                    style={{
+                      minWidth: "12rem",
+                      width: "100%",
+                    }}
+                    as="button">
+                    {region.value1}
+                  </Dropdown.Item>)}
+              </SearchDropdownMenu>
+            </DropdownButton>
+          </div>
+          <div className="d-flex flex-column align-items-start my-3 gap-1">
+            <span style={{fontSize: '0.9rem'}}>Select search scope</span>
+            <DropdownButton id="dropdown-search-area" title={selectedScope?.value ?? 'Select element'}>
+              {scopedRegionTypes.toArrayList().map((region) =>
+                <Dropdown.Item
+                  key={region.value}
+                  style={{
+                    minWidth: "12rem",
+                    width: "100%",
+                  }}
+                  onClick={() => setSelectedScope(region)}
+                  as="button">
+                  {region.value}
+                </Dropdown.Item>)}
+            </DropdownButton>
+          </div>
         </div>
         <span className="mt-4">
           Select your user profile
@@ -158,12 +167,16 @@ const HierarchicalPreferences = () => {
             style={{
               fontSize: '12px',
               borderRadius: '5px',
-              padding: '5px 1.5rem',
+              padding: '0.7rem 2.2rem',
+              backgroundColor: '#336273',
+              color: 'white',
             }}
             className='btn mt-4'
-            onClick={generateGreaterThanRecommendation}
+            onClick={makeNewRecommendationRequest}
           >
-            {'Generate'}
+            { loading ? 'Loading...' :
+              (recommendations.length > 0 ? 'Regenerate recommendations' :  'Generate recommendations')
+            }
           </button>
         </div>
 
