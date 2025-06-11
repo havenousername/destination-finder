@@ -33,6 +33,8 @@ const Map = ({setActiveResult}) => {
   const geoJsonLayer = useRef(null);
   const mapLayers = useRef([]);
 
+  const {tileMaps, recommendedMaps, recommendations} = useRegionStore();
+
   // countries or global
   const [continents] = useState(combineRegionsIntoContinents());
 
@@ -66,6 +68,14 @@ const Map = ({setActiveResult}) => {
     });
   }
 
+
+  const onEachRegion = useCallback((region, layer, recommendations) => {
+    const currentRegionRecommendation = recommendations.find(r => region.properties.region === r.region.id.localName)
+    const avgDeltaMax = recommendations.map(r => r.explanation.avgDelta).reduce((a, b) => a > b ? a : b, 0);
+    const score = Math.round((+(currentRegionRecommendation.explanation.avgDelta / avgDeltaMax)) * 100)
+    layer.options.fillColor = getColor(score);
+  }, [recommendations]);
+
   /**
    *
    * @type {(function($ObjMap, *): void)|*}
@@ -97,6 +107,7 @@ const Map = ({setActiveResult}) => {
 
     // console.log(travelStore.results)
     layer.options.fillColor = getColor(score);
+    layer.options.color = getColor(score);
 
     if (cIndex < 10 && score > 0) {
       addNumberToTheIndexedCountry(layer, cIndex);
@@ -203,7 +214,6 @@ const Map = ({setActiveResult}) => {
               : "#fff";
   };
 
-  const {tileMaps, recommendedMaps} = useRegionStore();
 
   const recommendedCollection = {
     type: "FeatureCollection",
@@ -226,22 +236,23 @@ const Map = ({setActiveResult}) => {
             isRdfVersion &&
             <ReactiveGeoJson
               style={{
-                fillOpacity: 0.2,
-                color: "red",
-                // fillColor: "#1D5163",
-                weight: 1,
+                fillOpacity: 0.6,
+                color: "rgba(255, 255, 255, 1)",
+                weight: 2,
               }}
               data={recommendedCollection}
+              onEachFeature={onEachRegion}
+              recommendations={recommendations}
             />
           }
           {
             isRdfVersion &&
             <ReactiveGeoJson
               style={{
-                fillOpacity: 0.2,
+                fillOpacity: 0.35,
                 color: "rgba(255, 255, 255, 1)",
+                weight: 0,
                 // fillColor: "#1D5163",
-                weight: 1,
               }}
               data={tileMaps}
             />

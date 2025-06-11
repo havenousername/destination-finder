@@ -29,7 +29,7 @@ export const RightSidebar = ({activeResult}) => {
         setActiveIndex(-1);
       } else {
         setActiveIndex(activeResult);
-        accordElem.current.scrollIntoView({
+        accordElem.current?.scrollIntoView({
           behavior: "smooth",
           block: "center",
           inline: "start",

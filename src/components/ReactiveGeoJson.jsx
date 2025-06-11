@@ -1,8 +1,7 @@
 import {useEffect, useRef} from "react";
 import {GeoJSON} from "react-leaflet";
-import {simplify, union} from "@turf/turf";
 
-const ReactiveGeoJson = ({ data, style }) => {
+const ReactiveGeoJson = ({ data, style, onEachFeature, recommendations }) => {
   const layerRef = useRef();
 
   useEffect(() => {
@@ -15,11 +14,21 @@ const ReactiveGeoJson = ({ data, style }) => {
     layerRef.current.addData(data);
   }
 
+  const doOnEachFeature = (region, layer) => {
+    onEachFeature && onEachFeature(region, layer, recommendations)
+  }
+
+  useEffect(() => {
+    if (!recommendations || recommendations?.length === 0) return;
+    layerRef.current.options.onEachFeature = doOnEachFeature;
+  }, [recommendations]);
+
   return (
     <GeoJSON
       ref={layerRef}
       style={style}
       data={data}
+      onEachFeature={doOnEachFeature}
     />
   );
 };

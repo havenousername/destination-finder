@@ -1,9 +1,9 @@
 import useRegionStore from "../api/rdf/useRegionStore";
-import React, {useEffect, useState} from "react";
+import React, {useState} from "react";
 import Accordion from "react-bootstrap/Accordion";
 import {COLORS_MAP} from "../data/constantData";
-import ResultInfo from "../views/ResultsView/components/ResultInfo";
 import RdfRecommendationDetails from "./RdfRecommendationDetails";
+import {splitPascalCase} from "../helpers/textHelpers";
 
 const RdfRecommendations = () => {
   const {recommendations} = useRegionStore();
@@ -14,6 +14,7 @@ const RdfRecommendations = () => {
     setActiveKey(prev => (prev === eventKey) ? undefined : eventKey);
   };
 
+  const avgDeltaMax = recommendations.map(r => r.explanation.avgDelta).reduce((a, b) => a > b ? a : b, 0);
 
   if (recommendations.length === 0) {
     return (<div className="w-100 h-100 d-flex align-items-center">
@@ -42,20 +43,44 @@ const RdfRecommendations = () => {
               </span>
             </div>
             <div className={'d-flex flex-column flex-grow-1'}>
-              <span
-                title={item.region.name}
-                style={{
-                  maxWidth: '120px',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  display: 'inline-block',
-                  verticalAlign: 'middle',
-                  width: "100%"
-                }}
-              >
-                {item.region.name}
-              </span>
+              <div className='d-flex position-relative'>
+                   <span
+                     style={{
+                       maxWidth: '130px',
+                       whiteSpace: 'nowrap',
+                       fontSize: '0.65rem',
+                       fontWeight: 'bold',
+                     }}
+                   >
+                  {splitPascalCase(item.region?.parentRegion?.localName) ?? 'No parent'}
+                </span>
+                <div
+                  className={'position-absolute'}
+                  style={{
+                    right: '5px',
+                    fontSize: '0.8rem',
+                    fontWeight: 'bold',
+                  }}
+                >
+                  Delta: { Math.round((+(item.explanation.avgDelta / avgDeltaMax)) * 100) }
+                </div>
+              </div>
+              <div className='d-flex'>
+                  <span
+                    title={item.region.name}
+                    style={{
+                      maxWidth: '130px',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      display: 'inline-block',
+                      verticalAlign: 'middle',
+                      width: "100%"
+                    }}
+                  >
+                  {item.region.name}
+                </span>
+              </div>
               <span
                 title={item.region.name}
                 style={{
@@ -83,7 +108,6 @@ const RdfRecommendations = () => {
             </div>
           </div>
         </Accordion.Header>
-
         <Accordion.Body>
           <RdfRecommendationDetails
             isActive={activeKey === index}

@@ -4,7 +4,7 @@ import useRegionStore from "./useRegionStore";
 import {useRdfUser} from "./useUser";
 import {useGetJsonMap} from "./useRegions";
 
-const MATCH_RATION_DEFAULT = 0.4;
+const MATCH_RATION_DEFAULT = 0.2;
 const ADD_EXPLANATIONS = true;
 const DEFAULT_TOLERANCE = 0;
 const MAX_RESULTS = 10;
@@ -50,20 +50,32 @@ export const useRecommendation = () => {
       setRecommendations(recommendationResults.entities);
 
       Promise.all(recommendationResults.entities.map((entity) => {
-        return fetchJsonMapManually(entity.region.type, entity.region.id.localName)
+        return fetchJsonMapManually(entity.region.type.replace("_", ""), entity.region.id.localName)
       }))
         .then(maps => {
-          Promise.all(maps.map(async (map) => {
+          Promise.all(maps.map(async (map, idx) => {
             const jsonVersion = await map.json();
 
             let features = []
             if (jsonVersion.features && jsonVersion.features.length > 0) {
               features = jsonVersion.features;
+            } else if (jsonVersion.data.type === 'Feature') {
+              features = [jsonVersion.data];
             } else if (jsonVersion.data.features) {
               features = jsonVersion.data.features;
             }
             const selectedFeatures = features.filter(i => i.geometry.type !== 'Point');
-            return { type: jsonVersion.type, features: selectedFeatures };
+            selectedFeatures.forEach(feature => {
+              if (!feature.properties) {
+                feature.properties = {};
+              }
+              feature.properties.region = recommendationResults.entities[idx].region.id.localName;
+            })
+            return {
+              type: jsonVersion.type ?? 'Feature Collection',
+              features: selectedFeatures,
+              region: recommendationResults.entities[idx].region.id.localName
+            };
           }))
             .then(maps => setRecommendedMaps(maps))
         });

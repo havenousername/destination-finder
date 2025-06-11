@@ -7,6 +7,9 @@ import Card from "react-bootstrap/Card";
 import {capitalize} from "lodash";
 import {QuestionCircleOutlined} from "@ant-design/icons";
 import Image from 'react-bootstrap/Image';
+import {splitPascalCase} from "../helpers/textHelpers";
+import {Cell, Pie, PieChart} from "recharts";
+import * as myConstant from "../data/constantData";
 
 const iconMap = {
   MOUNTAIN: 'EnvironmentOutlined',
@@ -59,18 +62,20 @@ const iconMap = {
 
 
 const RdfRecommendationDetails = ({recommendation, isActive}) => {
-  function splitPascalCase(str) {
-    return str.replace(/([A-Z])/g, ' $1').trim();
-  }
 
   const [fetchedChildren, setFetchedChildren] = useState([]);
   const [country, setCountry] = React.useState(recommendation.region.name);
 
   const diverseChildren = useMemo(() => {
-    // const filteredChildren = recommendation.region.children.filter(
-    //   child => !/^Q\d+$/.test(child.value0.localName)
-    // );
     const children = recommendation.region.children ?? [];
+
+    if (children.length <= 10) {
+      const uniqueMap = new Map();
+      children.forEach((item) => {
+        uniqueMap.set(item.value0.localName, item);
+      });
+      return [...uniqueMap.values()];
+    }
     const map = new Map();
 
     // Group items by feature (value1.localName)
@@ -109,7 +114,11 @@ const RdfRecommendationDetails = ({recommendation, isActive}) => {
       [result[i], result[j]] = [result[j], result[i]];
     }
 
-    return result;
+    const uniqueMap = new Map();
+    result.forEach((item) => {
+      uniqueMap.set(item.value0.localName, item);
+    });
+    return [...uniqueMap.values()];
   }, [recommendation.region.children]);
 
   useEffect(() => {
@@ -132,12 +141,57 @@ const RdfRecommendationDetails = ({recommendation, isActive}) => {
   }, [isActive, recommendation.region.children]);
 
 
+  const donutState = Object.freeze({
+    innerRadius: 10,
+    outerRadius: 25,
+  });
+
+  const pieChartData = recommendation.explanation.forFeatures.map((feature) => {
+    return {
+      name: feature,
+      value: recommendation.region.children.filter(child =>
+        child.value1.localName.toLowerCase() === feature).length,
+    };
+  });
+
+
   return (
     <Row className="white-theme">
-      <div className="d-flex">
+      <div className="d-flex position-relative my-2">
         <h6 style={{fontSize: '0.7rem', fontWeight: 'bold'}}>
           {splitPascalCase(recommendation?.region.parentRegion.localName)}
         </h6>
+        <div
+          className="position-absolute d-flex flex-row-reverse align-items-center"
+          style={{ right: '4px', top: '-15px' }}
+        >
+          <PieChart
+            width={(donutState.outerRadius + 10) * 2}
+            height={(donutState.outerRadius + 10) * 2}
+          >
+            <Pie
+              data={pieChartData}
+              innerRadius={donutState.innerRadius}
+              outerRadius={donutState.outerRadius}
+              fill="#8884d8"
+              paddingAngle={0}
+              dataKey="value"
+              isAnimationActive={false}
+            >
+              {recommendation.explanation.forFeatures?.map((entry, index) => {
+                return (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={myConstant.COLORS_MAP[entry]}
+                  />
+                )
+              })}
+            </Pie>
+          </PieChart>
+          <span style={{ fontSize: '0.66rem', maxWidth: '7rem' }}>
+            {pieChartData.map(data => `${data.value} ${capitalize(data.name)}`).join(", ") + " POI's"}
+          </span>
+        </div>
       </div>
       <div className="d-flex">
         <h6 style={{fontSize: '0.85rem', fontWeight: 'bold'}}>
@@ -148,134 +202,135 @@ const RdfRecommendationDetails = ({recommendation, isActive}) => {
         {recommendation?.region.name} {' has the following Points of Interest that make it good for '}
         {recommendation.explanation.forFeatures.map(i => capitalize(i)).join(", ")}
       </p>
-      <div className="d-flex flex-column gap-3 justify-content-start text-start">
+      <div className="d-flex flex-column gap-3 justify-content-center align-items-center text-start">
         {fetchedChildren
           .sort((a, b) => +a.percentageScore > +b.percentageScore ? -1 : 1)
           .map((child, index) => {
-          const feature = capitalize(child.feature?.regionFeature.toLowerCase() ?? 'Unknown');
-          const poi = child.name;
-          const color = COLORS_MAP[feature.toLowerCase()] ?? 'gray';
-          const IconComponent = child.featureSpecificType &&
-          iconMap[child.featureSpecificType] ?
-            require('@ant-design/icons')[iconMap[child.featureSpecificType]] :
-            require('@ant-design/icons')['QuestionCircleOutlined'];
+            const feature = capitalize(child.feature?.regionFeature.toLowerCase() ?? 'Unknown');
+            const poi = child.name;
+            const color = COLORS_MAP[feature.toLowerCase()] ?? 'gray';
+            const IconComponent = child.featureSpecificType &&
+            iconMap[child.featureSpecificType] ?
+              require('@ant-design/icons')[iconMap[child.featureSpecificType]] :
+              require('@ant-design/icons')['QuestionCircleOutlined'];
 
-          const image = child.images?.value1 === String(null)
-            ? child.images?.value0 : child.images?.value1;
-
-          console.log(child.images, image, poi);
-
-          return (
-            <Card key={index} style={{marginBottom: '10px', width: '100%', maxWidth: '300px'}}>
-              <Card.Body style={{padding: '10px'}}>
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '5px',
-                    position: 'relative',
-                  }}
-                >
+            const image = child.images?.value1 === String(null)
+              ? child.images?.value0 : child.images?.value1;
+            return (
+              <Card key={index} style={{marginBottom: '10px', width: '100%'}}>
+                <Card.Body style={{padding: '10px'}}>
                   <div
                     style={{
-                      fontWeight: '600',
-                      fontSize: '0.8rem',
-                      marginBottom: '0.3rem',
-                      maxWidth: '11rem'
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '5px',
+                      position: 'relative',
                     }}
                   >
-                    Name: <span style={{fontWeight: 400}}>{poi}</span>
-                  </div>
-                  <div
-                    style={{
-                      position: 'absolute',
-                      right: 0,
-                      fontSize: '0.6rem',
-                      fontWeight: 'bold',
-                      borderRadius: '50%',
-                      border: '1px solid white',
-                      padding: '3px',
-                    }}
-                  >
-                    { child.percentageScore }
-                  </div>
-
-                  {/* Optional Image */}
-                  {image && image !== 'null' && (
-                    <Image
-                      src={image}
+                    <div
                       style={{
-                        width: '100%',
-                        height: '7rem',
-                        objectFit: 'cover',
-                        padding: 0
+                        fontWeight: '600',
+                        fontSize: '0.8rem',
+                        marginBottom: '0.3rem',
+                        maxWidth: '11rem'
                       }}
-                      thumbnail
-                    />
-                  )}
-
-                  <div className="d-flex align-items-center gap-2" style={{fontSize: '0.7rem'}}>
-                    <span style={{fontWeight: 'bold'}}>Feature:</span>
-                    {!!IconComponent ? (
-                      <IconComponent style={{fontSize: '14px', color}}/>
-                    ) : (
-                      <QuestionCircleOutlined/>
-                    )}
-                    <span
+                    >
+                      Name: <span style={{fontWeight: 400}}>{poi}</span>
+                    </div>
+                    <div
                       style={{
-                        width: '12px',
-                        height: '12px',
-                        backgroundColor: color,
+                        position: 'absolute',
+                        right: 0,
+                        fontSize: '0.6rem',
+                        fontWeight: 'bold',
                         borderRadius: '50%',
                         border: '1px solid white',
-                        display: 'inline-block',
+                        padding: '3px',
                       }}
-                    />
-                    <span>{feature}</span>
-                  </div>
-
-                  <div className="d-flex align-items-center gap-2" style={{fontSize: '0.7rem'}}>
-                    <span style={{fontWeight: 'bold'}}>Website:</span>
-                    <span
-                      style={{
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        display: 'inline-block',
-                        maxWidth: '180px',
-                      }}
-                      title={child.officialWebsite || 'No website'}
                     >
+                      {child.percentageScore}
+                    </div>
+
+                    {/* Optional Image */}
+                    {image && image !== 'null' && (
+                      <Image
+                        src={image}
+                        style={{
+                          width: '100%',
+                          height: '7rem',
+                          objectFit: 'cover',
+                          padding: 0
+                        }}
+                        thumbnail
+                      />
+                    )}
+
+                    <div className="d-flex align-items-center gap-2" style={{fontSize: '0.7rem'}}>
+                      <span style={{fontWeight: 'bold'}}>Feature:</span>
+                      {!!IconComponent ? (
+                        <IconComponent style={{fontSize: '14px', color}}/>
+                      ) : (
+                        <QuestionCircleOutlined/>
+                      )}
+                      <span
+                        style={{
+                          width: '12px',
+                          height: '12px',
+                          backgroundColor: color,
+                          borderRadius: '50%',
+                          border: '1px solid white',
+                          display: 'inline-block',
+                        }}
+                      />
+                      <span>{feature}</span>
+                    </div>
+
+                    <div className="d-flex align-items-center gap-2" style={{fontSize: '0.7rem'}}>
+                      <span style={{fontWeight: 'bold'}}>Website:</span>
+                      <span
+                        style={{
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          display: 'inline-block',
+                          maxWidth: '180px',
+                        }}
+                        title={child.officialWebsite || 'No website'}
+                      >
                       {child.officialWebsite || 'No website'}
                     </span>
-                  </div>
+                    </div>
 
-                  <div className="d-flex align-items-center gap-2" style={{fontSize: '0.7rem'}}>
-                    <span style={{fontWeight: 'bold'}}>Wikidata:</span>
-                    <span
-                      style={{
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        display: 'inline-block',
-                        maxWidth: '180px',
-                        color: 'white',
-                      }}
-                      title={child.source.namespace + child.source.localName}
-                    >
-                      <a style={{
-                        color: 'white',
-                        textDecoration: 'none',
-                      }} href={child.source.namespace + child.source.localName}>
+                    <div className="d-flex align-items-center gap-2" style={{fontSize: '0.7rem'}}>
+                      <span style={{fontWeight: 'bold'}}>Wikidata:</span>
+                      <span
+                        style={{
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          display: 'inline-block',
+                          maxWidth: '180px',
+                          color: 'white',
+                        }}
+                        title={child.source.namespace + child.source.localName}
+                      >
+                      <a
+                        style={{
+                          color: 'white',
+                          textDecoration: 'none',
+                        }}
+                        href={child.source.namespace + child.source.localName}
+                        target="_blank"
+                      >
                         {child.source.namespace + child.source.localName}
                       </a>
                     </span>
+                    </div>
                   </div>
-                </div>
-              </Card.Body>
-            </Card>
-          );
-        })}
+                </Card.Body>
+              </Card>
+            );
+          })}
       </div>
 
     </Row>
