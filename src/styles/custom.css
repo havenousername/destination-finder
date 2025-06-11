@@ -1,0 +1,10 @@
+.preference-option #dropdown-search-area {
+    max-width: 11rem;
+    min-width: 11rem;
+    width: 100%;
+}
+#dropdown-search-area  {
+    border-color: var(--bg-color-preference, white);
+    border-width: 4px;
+    border-style: solid;
+}

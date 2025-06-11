@@ -34,41 +34,42 @@ const useTravelRecommenderStore = create((set, getState) => ({
             Nature: {
                 weight: 1,
                 score: 0,
+                isActive: true,
             },
             Architecture: {
-                weight: 1,
+                weight: 0,
                 score: 0,
             },
             Hiking: {
-                weight: 1,
+                weight: 0,
                 score: 0,
             },
             Wintersports: {
-                weight: 1,
+                weight: 0,
                 score: 0,
             },
             Watersports: {
-                weight: 1,
+                weight: 0,
                 score: 0,
             },
             Beach: {
-                weight: 1,
+                weight: 0,
                 score: 0,
             },
             Culture: {
-                weight: 1,
+                weight: 0,
                 score: 0,
             },
             Culinary: {
-                weight: 1,
+                weight: 0,
                 score: 0,
             },
             Entertainment: {
-                weight: 1,
+                weight: 0,
                 score: 0,
             },
             Shopping: {
-                weight: 1,
+                weight: 0,
                 score: 0,
             },
         },

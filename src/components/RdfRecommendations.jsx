@@ -1,22 +1,27 @@
 import useRegionStore from "../api/rdf/useRegionStore";
-import React, {useEffect} from "react";
+import React, {useEffect, useState} from "react";
 import Accordion from "react-bootstrap/Accordion";
 import {COLORS_MAP} from "../data/constantData";
-
+import ResultInfo from "../views/ResultsView/components/ResultInfo";
+import RdfRecommendationDetails from "./RdfRecommendationDetails";
 
 const RdfRecommendations = () => {
   const {recommendations} = useRegionStore();
+  const [activeKey, setActiveKey] = useState(undefined);
 
-  useEffect(() => {
-    console.log(recommendations);
-  }, [recommendations]);
+
+  const handleSelect = (eventKey) => {
+    setActiveKey(prev => (prev === eventKey) ? undefined : eventKey);
+  };
+
 
   if (recommendations.length === 0) {
     return (<div className="w-100 h-100 d-flex align-items-center">
       No results found. Please select the search area and region first
     </div>);
   }
-  return (<Accordion>
+  return (
+    <Accordion activeKey={activeKey} onSelect={handleSelect}>
       {recommendations.map((item, index) => (<Accordion.Item eventKey={index}>
         <Accordion.Header>
           <div className="d-flex w-100 h-100 gap-3">
@@ -25,13 +30,16 @@ const RdfRecommendations = () => {
                 borderRadius: '50%',
                 width: '1.5rem',
                 height: '1.5rem',
-                border: `1px solid rgba(255, 255, 255, 0.7)`,
+                border: '1px solid #336273',
+                fontSize: '0.8rem',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              {item.priority}
+              <span>
+                {item.priority}
+              </span>
             </div>
             <div className={'d-flex flex-column flex-grow-1'}>
               <span
@@ -75,6 +83,13 @@ const RdfRecommendations = () => {
             </div>
           </div>
         </Accordion.Header>
+
+        <Accordion.Body>
+          <RdfRecommendationDetails
+            isActive={activeKey === index}
+            recommendation={item}
+          />
+        </Accordion.Body>
       </Accordion.Item>))}
   </Accordion>);
 }

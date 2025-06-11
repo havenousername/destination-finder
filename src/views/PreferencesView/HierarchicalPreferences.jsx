@@ -6,11 +6,9 @@ import {useGetJsonMap, useGetRegion, useRegionTypes, useSimplifiedRegions} from 
 import SearchDropdownMenu from "../../components/SearchDropdown";
 import useRegionStore from "../../api/rdf/useRegionStore";
 import {CustomizationContainer} from "./components/CustomizationContainer";
-import {useRdfUser} from "../../api/rdf/useUser";
 import {LinkedList} from "../../helpers/linkedList";
 import {useRecommendation} from "../../api/rdf/useRecommendation";
 import {simplify, union, cleanCoords} from "@turf/turf";
-// import osmtogeojson from 'osmtogeojson';
 
 
 const HierarchicalPreferences = () => {

@@ -59,6 +59,12 @@ export const useGetRegion = () => {
   return { fetchRegion, response, error, loading };
 }
 
+export const getFetchPoiById = (id) => {
+  return fetch(`${process.env.REACT_APP_RDF_BACKEND_API}/region/poi/${id}`,{
+    method: "GET",
+  });
+}
+
 
 export const useGetJsonMap = () => {
   const [{response, error}, refersh] = useAxios({

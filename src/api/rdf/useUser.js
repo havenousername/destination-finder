@@ -48,7 +48,7 @@ export const useRdfUser = () => {
             userData.Attributes[key].weight === 1]
       }), {});
 
-    features['Safety'] = [0, true];
+    features['Safety'] = [0, false];
 
     const data = await fetch(`${process.env.REACT_APP_RDF_BACKEND_API}/user/preference`, {
       method: "PUT",

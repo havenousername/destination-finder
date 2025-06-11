@@ -21,7 +21,7 @@ export const CustomizationContainer = () => {
             <div
               style={
               isRdfVersion ? {
-                padding: '0.5rem 0.5rem'
+                padding: ''
               } : {
                 border:"1px solid var(--border-color)",
                 borderRadius: "1rem",

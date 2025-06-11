@@ -4,7 +4,7 @@ import useRegionStore from "./useRegionStore";
 import {useRdfUser} from "./useUser";
 import {useGetJsonMap} from "./useRegions";
 
-const MATCH_RATION_DEFAULT = 0.1;
+const MATCH_RATION_DEFAULT = 0.4;
 const ADD_EXPLANATIONS = true;
 const DEFAULT_TOLERANCE = 0;
 const MAX_RESULTS = 10;
@@ -32,8 +32,8 @@ export const useRecommendation = () => {
     addExplanations,
     maxResults,
     tolerance,
-    fromRegion: chosenRegion?.id.localName ?? null,
-    toRegionType: selectedScope?.value ?? null
+    fromRegion: chosenRegion?.id.localName ?? undefined,
+    toRegionType: selectedScope?.value ?? undefined
   };
 
   const generateGreaterThanRecommendation = async  () => {
