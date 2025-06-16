@@ -52,16 +52,21 @@ export const useRecommendation = () => {
       Promise.all(recommendationResults.entities.map((entity) => {
         return fetchJsonMapManually(entity.region.type.replace("_", ""), entity.region.id.localName)
       }))
+        .catch(e => {
+          console.error(e, "some maps were not uploaded");
+        })
         .then(maps => {
           Promise.all(maps.map(async (map, idx) => {
+            if (map.status === 404) {
+              return;
+            }
             const jsonVersion = await map.json();
-
             let features = []
-            if (jsonVersion.features && jsonVersion.features.length > 0) {
+            if (jsonVersion?.features && jsonVersion?.features.length > 0) {
               features = jsonVersion.features;
-            } else if (jsonVersion.data.type === 'Feature') {
+            } else if (jsonVersion?.data?.type === 'Feature') {
               features = [jsonVersion.data];
-            } else if (jsonVersion.data.features) {
+            } else if (jsonVersion.data?.features) {
               features = jsonVersion.data.features;
             }
             const selectedFeatures = features.filter(i => i.geometry.type !== 'Point');

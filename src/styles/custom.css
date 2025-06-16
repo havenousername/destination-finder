@@ -3,6 +3,10 @@
     color: white;
 }
 
+.dropdown-menu.show .form-control {
+color: white !important;
+}
+
 .dropdown-menu.show {
     background-color: #0B1C22;
     color: white;

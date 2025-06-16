@@ -236,9 +236,9 @@ const Map = ({setActiveResult}) => {
             isRdfVersion &&
             <ReactiveGeoJson
               style={{
-                fillOpacity: 0.6,
-                color: "rgba(255, 255, 255, 1)",
-                weight: 2,
+                fillOpacity: 0.65,
+                color: "#336273",
+                weight: 1,
               }}
               data={recommendedCollection}
               onEachFeature={onEachRegion}
@@ -250,8 +250,8 @@ const Map = ({setActiveResult}) => {
             <ReactiveGeoJson
               style={{
                 fillOpacity: 0.35,
-                color: "rgba(255, 255, 255, 1)",
-                weight: 0,
+                color: "#193D4A",
+                weight: 1,
                 // fillColor: "#1D5163",
               }}
               data={tileMaps}

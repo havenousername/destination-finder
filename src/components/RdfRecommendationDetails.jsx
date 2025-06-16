@@ -312,17 +312,17 @@ const RdfRecommendationDetails = ({recommendation, isActive}) => {
                           maxWidth: '180px',
                           color: 'white',
                         }}
-                        title={child.source.namespace + child.source.localName}
+                        title={child.source?.namespace ? child.source?.namespace + child.source?.localName : ''}
                       >
                       <a
                         style={{
                           color: 'white',
                           textDecoration: 'none',
                         }}
-                        href={child.source.namespace + child.source.localName}
+                        href={child.source?.namespace ? child.source?.namespace + child.source?.localName : ''}
                         target="_blank"
                       >
-                        {child.source.namespace + child.source.localName}
+                        {child.source?.namespace + child.source?.localName}
                       </a>
                     </span>
                     </div>

@@ -32,9 +32,8 @@ const useTravelRecommenderStore = create((set, getState) => ({
         },
         Attributes: {
             Nature: {
-                weight: 1,
+                weight: 0,
                 score: 0,
-                isActive: true,
             },
             Architecture: {
                 weight: 0,

@@ -62,7 +62,7 @@ const RdfRecommendations = () => {
                     fontWeight: 'bold',
                   }}
                 >
-                  Delta: { Math.round((+(item.explanation.avgDelta / avgDeltaMax)) * 100) }
+                  Feature match: { Math.round((+(item.explanation.avgDelta / avgDeltaMax)) * 100) }
                 </div>
               </div>
               <div className='d-flex'>

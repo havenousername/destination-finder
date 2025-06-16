@@ -33,6 +33,10 @@ const HierarchicalPreferences = () => {
   const scopedRegionTypes = LinkedList.fromNode(fromRegionType.next);
 
   useEffect(() => {
+    console.log(availableRegionsOfType)
+  }, [availableRegionsOfType]);
+
+  useEffect(() => {
     if (regionTypes && !!fromRegionType?.value && (fromRegionType?.value !== regionTypes?.head?.value)) {
       fetchLightRegionByType(fromRegionType.value);
     }
@@ -126,10 +130,10 @@ const HierarchicalPreferences = () => {
           <span style={{fontSize: '0.9rem'}}>Search region in <strong
             style={{fontWeight: 'bold'}}>{fromRegionType?.value ?? 'None'}</strong></span>
             <DropdownButton id="dropdown-search-area" title={selectedRegion.name || 'Select element'}>
-              <SearchDropdownMenu id="dropdown-search-region">
-                {availableRegionsOfType.map((region) =>
+              {availableRegionsOfType && <SearchDropdownMenu id="dropdown-search-region">
+                {availableRegionsOfType.map((region, idx) =>
                   <Dropdown.Item
-                    key={region.value1}
+                    key={region.value0 + idx}
                     onClick={() => setSelectedRegion({name: region.value1, uri: region.value0})}
                     style={{
                       minWidth: "12rem",
@@ -138,7 +142,7 @@ const HierarchicalPreferences = () => {
                     as="button">
                     {region.value1}
                   </Dropdown.Item>)}
-              </SearchDropdownMenu>
+              </SearchDropdownMenu>}
             </DropdownButton>
           </div>
           <div className="d-flex flex-column align-items-start my-3 gap-1">
