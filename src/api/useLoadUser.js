@@ -4,6 +4,7 @@ import {useNavigate} from "react-router-dom";
 import {useAuthContext} from "../context/AuthContext";
 import {useState} from "react";
 import {useToken} from "../components/AuthProvider/AuthProvider";
+import {strapiHeader} from "./headers";
 
 
 const useLoadUser = (signUp) => {
@@ -27,6 +28,7 @@ const useLoadUser = (signUp) => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...strapiHeader(),
         },
         body: JSON.stringify(value),
       });

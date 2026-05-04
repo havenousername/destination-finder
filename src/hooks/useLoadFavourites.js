@@ -3,6 +3,7 @@ import {useToken} from "../components/AuthProvider/AuthProvider";
 import {FavouritesApi} from "../api/favourites";
 import {useAuthContext} from "../context/AuthContext";
 import {useEffect, useState} from "react";
+import {strapiHeader} from "../api/headers";
 
 
 const favouritesState = create((set, get) => ({
@@ -21,7 +22,7 @@ const favouritesState = create((set, get) => ({
       const token = useToken.getState().token;
       const fetcher = new FavouritesApi(
         `${process.env.REACT_APP_BACKEND_URL}/favourites/${userId}`,
-        { Authorization: `bearer ${token}` },
+        { Authorization: `bearer ${token}`, ...strapiHeader() },
       )
       const data = await fetcher.getFavourites();
       set({ favourites: data, fetcher, initialized: true });
@@ -55,18 +56,19 @@ const favouritesState = create((set, get) => ({
   }
 }));
 
-export const useFavourites = () => {
+export const useLoadFavourites = () => {
   const state = favouritesState();
   const auth = useAuthContext();
 
   useEffect(() => {
-    if (!auth.user) {
+    if (!auth.user || !auth.user.id) {
       return;
     }
     if (!state.initialized) {
       state.fetch(auth.user.id);
     }
-  }, [auth]);
+
+  }, [auth, state.initialized]);
 
 
   return state;
@@ -79,7 +81,7 @@ export const useFavourites = () => {
  * no inherit hazard from doing it on the frontend (max num_countries elements << 1000)
  */
 export const useFavouritesPaginationFrontend = (pageSize = 8) => {
-  const {favourites, error} = useFavourites();
+  const {favourites, error} = useLoadFavourites();
   const [paginator, setPaginator] = useState({
     page: 1,
     pageSize,

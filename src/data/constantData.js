@@ -12,3 +12,17 @@ export const COLORS = [
 
 
 export const GREY_COLOR = '#808080';
+
+
+
+export const COLORS_MAP = {
+  nature: "#98a886",
+  architecture: "#16B0B2",
+  hiking: "#585123",
+  wintersports: "#3f8efc",
+  watersports: "#7b2cbf",
+  beach: "#f72585",
+  culture: "#f57eb6",
+  entertainment: "#b56576",
+  shopping: "#c08552",
+};

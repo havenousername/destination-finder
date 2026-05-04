@@ -1,7 +1,8 @@
 import { create } from 'zustand'
 
-const useTravelRecommenderStore = create((set) => ({
+const useTravelRecommenderStore = create((set, getState) => ({
     countries: [],
+    version: 'v2',
     userData: {
         isPriceImportant: false,
         Budget: 50,
@@ -31,40 +32,44 @@ const useTravelRecommenderStore = create((set) => ({
         },
         Attributes: {
             Nature: {
-                weight: 1,
-                score: 50,
+                weight: 0,
+                score: 0,
             },
             Architecture: {
-                weight: 1,
-                score: 50,
+                weight: 0,
+                score: 0,
             },
             Hiking: {
-                weight: 1,
-                score: 50,
+                weight: 0,
+                score: 0,
             },
             Wintersports: {
-                weight: 1,
-                score: 50,
+                weight: 0,
+                score: 0,
+            },
+            Watersports: {
+                weight: 0,
+                score: 0,
             },
             Beach: {
-                weight: 1,
-                score: 50,
+                weight: 0,
+                score: 0,
             },
             Culture: {
-                weight: 1,
-                score: 50,
+                weight: 0,
+                score: 0,
             },
             Culinary: {
-                weight: 1,
-                score: 50,
+                weight: 0,
+                score: 0,
             },
             Entertainment: {
-                weight: 1,
-                score: 50,
+                weight: 0,
+                score: 0,
             },
             Shopping: {
-                weight: 1,
-                score: 50,
+                weight: 0,
+                score: 0,
             },
         },
     },
@@ -163,67 +168,14 @@ const useTravelRecommenderStore = create((set) => ({
     setCountries: (newCountries) => set({ countries: newCountries }),
     setUserData: (newUserData) => set({ userData: newUserData }),
     setResults: (newResults) => set({ results: newResults }),
-
-    // Algorithm parameter actions
-    setAlgorithmParameter: (algorithmType, paramName, value) => 
-        set(state => ({
-            algorithmParameters: {
-                ...state.algorithmParameters,
-                [algorithmType]: {
-                    ...state.algorithmParameters[algorithmType],
-                    [paramName]: value
-                }
-            }
-        })),
-
-    setWeekAllocationParameter: (paramName, value) => 
-        set(state => ({
-            algorithmParameters: {
-                ...state.algorithmParameters,
-                weekAllocation: {
-                    ...state.algorithmParameters.weekAllocation,
-                    [paramName]: value
-                }
-            }
-        })),
-
-    setDistanceDecayParameter: (paramName, value) => 
-        set(state => ({
-            algorithmParameters: {
-                ...state.algorithmParameters,
-                distanceDecay: {
-                    ...state.algorithmParameters.distanceDecay,
-                    [paramName]: value
-                }
-            }
-        })),
-
-    // Reset parameters to defaults
-    resetAlgorithmParameters: () => 
-        set(state => ({
-            algorithmParameters: {
-                ...state.algorithmParameters,
-                weekAllocation: {
-                    minWeeksPerRegion: 1,
-                    maxWeeksPerRegionRatio: 0.5,
-                    lambdaPenalty: {
-                        percentage: true,
-                        range: { min: 0, max: 100 },
-                        scaling: 0.1,
-                        description: state.algorithmParameters.weekAllocation.lambdaPenalty.description
-                    },
-                    penaltyFunction: "quadratic",
-                    description: state.algorithmParameters.weekAllocation.description
-                },
-                distanceDecay: {
-                    strategy: "exponential",
-                    minPenaltyRate: 0.00001,
-                    maxPenaltyRate: 0.01,
-                    scalingFunction: "linear",
-                    description: state.algorithmParameters.distanceDecay.description
-                }
-            }
-        }))
+    setVersion: (version) => {
+        if (version === 'v1') {
+            return set({ version })
+        } else {
+            return set({ version: 'v2', refresh: true, results: [], countries: [] })
+        }
+    },
+    isRdfVersion: () =>  getState().version === 'v2',
 }));
 
 export default useTravelRecommenderStore;

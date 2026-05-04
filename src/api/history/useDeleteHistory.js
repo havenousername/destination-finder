@@ -1,6 +1,6 @@
 import {useToken} from "../../components/AuthProvider/AuthProvider";
 import useAxios from "axios-hooks";
-import authenticationHeader from "../authenticationHeader";
+import authenticationHeader from "../headers";
 import {useMemo, useState} from "react";
 import useApiEvent from "../../hooks/useApiEvent";
 

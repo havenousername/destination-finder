@@ -1,6 +1,6 @@
 import {useEffect, useState} from "react";
 import useAxios from "axios-hooks";
-import authenticationHeader from "../authenticationHeader";
+import authenticationHeader from "../headers";
 import {useToken} from "../../components/AuthProvider/AuthProvider";
 
 // http://localhost:1337/api/visits?pagination[page]=1&pagination[pageSize]=10&populate=*&filters[user][id][$eq]=1
@@ -18,7 +18,8 @@ const useLoadHistory = ({
     const params = new URLSearchParams();
     params.append('pagination[page]', String(obj?.page ?? 1));
     params.append('pagination[pageSize]', String(pageSize));
-    params.append('populate', 'images,region');
+    params.append('populate[0]', 'images');
+    params.append('populate[1]', 'region');
     params.append('filters[user][id][$eq]', userId);
     if (region) {
       params.append('filters[region][id][$eq]', region);

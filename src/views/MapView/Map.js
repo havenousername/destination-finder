@@ -1,32 +1,43 @@
-import React, { useRef, useState, useEffect, useCallback } from "react";
-import { MapContainer, GeoJSON, Marker, Popup } from "react-leaflet";
+import React, {useCallback, useEffect, useRef, useState} from "react";
+import {GeoJSON, MapContainer, TileLayer} from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import "./styles/Map.css";
 import Legend from "./components/Legend";
 import useTravelRecommenderStore from "../../store/travelRecommenderStore";
 import LeafletTooltip from "../../components/LeafletPopup";
-import { ReactComponent as MarkerIcon } from '../../images/Marker.svg';
-import { create } from "zustand";
+import {create} from "zustand";
+import {combineRegionsIntoContinents} from "../../helpers/combineRegions";
+import useRegionStore from "../../api/rdf/useRegionStore";
+import ReactiveGeoJson from "../../components/ReactiveGeoJson";
+import { union } from '@turf/turf';
 
 const position = [51.0967884, 5.9671304];
+
 
 export const useReferencedCountry = create((set) => ({
   countryId: null,
   setCountry: (countryId) => {
-    set({ countryId })
+    set({countryId})
   },
   resetCountry: () => {
-    set({ countryId: null })
+    set({countryId: null})
   }
 }));
 
-const Map = ({ setActiveResult }) => {
+const Map = ({setActiveResult}) => {
   const [map, setMap] = useState(null);
   const countries = useTravelRecommenderStore((state) => state.countries);
+  const isRdfVersion = useTravelRecommenderStore((state) => state.isRdfVersion());
   const travelStore = useTravelRecommenderStore();
   const {recommendationType} = useTravelRecommenderStore();
   const geoJsonLayer = useRef(null);
   const mapLayers = useRef([]);
+
+  const {tileMaps, recommendedMaps, recommendations} = useRegionStore();
+
+  // countries or global
+  const [continents] = useState(combineRegionsIntoContinents());
+
   const {
     countryId: referencedCountryId,
     resetCountry: resetReferencedCountry
@@ -57,6 +68,14 @@ const Map = ({ setActiveResult }) => {
     });
   }
 
+
+  const onEachRegion = useCallback((region, layer, recommendations) => {
+    const currentRegionRecommendation = recommendations.find(r => region.properties.region === r.region.id.localName)
+    const avgDeltaMax = recommendations.map(r => r.explanation.avgDelta).reduce((a, b) => a > b ? a : b, 0);
+    const score = Math.round((+(currentRegionRecommendation.explanation.avgDelta / avgDeltaMax)) * 100)
+    layer.options.fillColor = getColor(score);
+  }, [recommendations]);
+
   /**
    *
    * @type {(function($ObjMap, *): void)|*}
@@ -66,7 +85,6 @@ const Map = ({ setActiveResult }) => {
     const cIndex = countries.findIndex(
       (r) => r.properties.u_name === country.properties.u_name
     );
-
     let score;
     const currentRecommendationType = useTravelRecommenderStore.getState().recommendationType;
     const currentResults = useTravelRecommenderStore.getState().results;
@@ -89,6 +107,7 @@ const Map = ({ setActiveResult }) => {
 
     // console.log(travelStore.results)
     layer.options.fillColor = getColor(score);
+    layer.options.color = getColor(score);
 
     if (cIndex < 10 && score > 0) {
       addNumberToTheIndexedCountry(layer, cIndex);
@@ -113,11 +132,11 @@ const Map = ({ setActiveResult }) => {
 
   const onCountryPopupOpen = (countryId) => {
     const layer = geoJsonLayer.current.getLayer(mapLayers.current[countryId]);
-    const { lat, lng } = layer.getCenter();
+    const {lat, lng} = layer.getCenter();
     map.flyTo([lat, lng]);
     map.once('moveend', () => {
       layer.fireEvent('click', {
-        latlng: { lat, lng }
+        latlng: {lat, lng}
       });
     });
   };
@@ -195,25 +214,60 @@ const Map = ({ setActiveResult }) => {
               : "#fff";
   };
 
+
+  const recommendedCollection = {
+    type: "FeatureCollection",
+    features: recommendedMaps.flatMap(r => r.features),
+  }
+
   return (
     <div>
       <div>
         <MapContainer
-          style={{ height: "100vh", width: "auto" }}
+          style={{height: "100vh", width: "auto", minHeight: "100vh"}}
           zoom={4}
           id={'map'}
           center={position}
+          scrollWheelZoom={true}
           ref={setMap}
           doubleClickZoom={false}
         >
-
-
-          <GeoJSON
+          {
+            isRdfVersion &&
+            <ReactiveGeoJson
+              style={{
+                fillOpacity: 0.65,
+                color: "#336273",
+                weight: 1,
+              }}
+              data={recommendedCollection}
+              onEachFeature={onEachRegion}
+              recommendations={recommendations}
+            />
+          }
+          {
+            isRdfVersion &&
+            <ReactiveGeoJson
+              style={{
+                fillOpacity: 0.35,
+                color: "#193D4A",
+                weight: 1,
+                // fillColor: "#1D5163",
+              }}
+              data={tileMaps}
+            />
+          }
+          {isRdfVersion && <TileLayer
+            url="https://api.mapbox.com/styles/v1/havenousername/cmbcfnlaw002m01r06cesb4yt/tiles/256/{z}/{x}/{y}?access_token=pk.eyJ1IjoiaGF2ZW5vdXNlcm5hbWUiLCJhIjoiY21iOXczbTFvMGRqdjJqczVvbHpxOWY2bCJ9.27HH2sMj1igOPz-iKnacgA"
+            attribution="Map data © Mapbox"
+          />}
+          {!isRdfVersion && <GeoJSON
             ref={geoJsonLayer}
             style={countryStyle}
             data={countries}
             onEachFeature={onEachCountry}
-          />
+          />}
+
           {/* {true && (
   <Marker icon={MarkerIcon} position={[28.5946, 16.4861]}>
     <Popup>This is the point you highlighted</Popup>
@@ -228,7 +282,7 @@ const Map = ({ setActiveResult }) => {
             country={selectedResult}
             reset={onPopupReset}
           />
-          <Legend map={map} />
+          <Legend map={map}/>
         </MapContainer>
       </div>
     </div>

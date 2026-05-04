@@ -6,3 +6,22 @@ a.leaflet-popup-close-button {
 a:hover.leaflet-popup-close-button {
     color: white !important;
 }
+
+.info.legend.leaflet-control {
+    background-color: #193D4A;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.leaflet-control-zoom.leaflet-bar.leaflet-control {
+    background-color: #193D4A;
+    color: rgba(255, 255, 255, 0.7);
+}
+.leaflet-bar a {
+    background-color: #193D4A !important;
+    color: rgba(255, 255, 255, 0.7) !important;
+    transition: all 0.2s ease-in;
+}
+
+.leaflet-bar a:hover {
+    background-color: #336273 !important;
+}

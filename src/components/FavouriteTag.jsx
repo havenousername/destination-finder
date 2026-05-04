@@ -1,10 +1,10 @@
 import { StarFilled, StarOutlined } from '@ant-design/icons';
-import {useFavourites} from "../hooks/useFavourites";
+import {useLoadFavourites} from "../hooks/useLoadFavourites";
 import {useAuthContext} from "../context/AuthContext";
 
 
 const FavouriteTag = ({ country }) => {
-  const favourites = useFavourites();
+  const favourites = useLoadFavourites();
   const isFavourite = favourites.favourites?.map(fav => fav.name).includes(country);
   const onClick = async (e) => {
     e.stopPropagation();
