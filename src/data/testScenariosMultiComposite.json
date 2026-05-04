@@ -1,0 +1,49 @@
+{
+    "scenarios": [
+      {
+        "name": "Budget Traveler, Long Trip",
+        "Budget": 0,
+        "Weeks": 60,
+        "Distance": 50,
+        "isDistanceNotImportant": false,
+        "weekAllocationDistribution": 50,
+        "description": "Tests algorithm performance for budget-conscious travelers on extended trips"
+      },
+      {
+        "name": "Luxury Traveler, Short Trip",
+        "Budget": 100,
+        "Weeks": 15,
+        "Distance": 30,
+        "isDistanceNotImportant": true,
+        "weekAllocationDistribution": 80,
+        "description": "Tests algorithm performance for luxury travelers with flexible budgets"
+      },
+      {
+        "name": "Mid-Range, Distance Sensitive",
+        "Budget": 50,
+        "Weeks": 30,
+        "Distance": 90,
+        "isDistanceNotImportant": false,
+        "weekAllocationDistribution": 30,
+        "description": "Tests algorithm behavior with distance constraints"
+      },
+      {
+        "name": "Balanced Multi-Region",
+        "Budget": 50,
+        "Weeks": 45,
+        "Distance": 50,
+        "isDistanceNotImportant": false,
+        "weekAllocationDistribution": 50,
+        "description": "Tests balanced distribution across multiple regions"
+      },
+      {
+        "name": "Extreme Distance Preference",
+        "Budget": 100,
+        "Weeks": 30,
+        "Distance": 100,
+        "isDistanceNotImportant": false,
+        "weekAllocationDistribution": 70,
+        "description": "Tests algorithm behavior with maximum distance importance"
+      }
+    ]
+  }

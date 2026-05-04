@@ -41,7 +41,8 @@ const App = () => {
         setCountries,
         setResults,
         recommendationType,
-        algorithmUsed
+        algorithmUsed,
+        algorithmParameters
       );
     }
   };
